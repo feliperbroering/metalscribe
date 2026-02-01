@@ -1,54 +1,54 @@
 # Technical Specification - metalscribe
 
-## Arquitetura
+## Architecture
 
-### Fluxo de Processamento
+### Processing Flow
 
 ```
-Áudio de Entrada (m4a, mp3, etc.)
+Input Audio (m4a, mp3, etc.)
     ↓
 ffmpeg → WAV 16kHz mono
     ↓
     ├─→ whisper.cpp (Metal GPU) → transcript.json
     └─→ pyannote.audio (MPS GPU) → diarize.json
     ↓
-merge_segments() (algoritmo O(N+M))
+merge_segments() (O(N+M) algorithm)
     ↓
 Export: JSON, SRT, Markdown
 ```
 
-## Componentes Principais
+## Main Components
 
 ### Core
 
-- **audio.py**: Conversão de áudio via ffmpeg
-- **whisper.py**: Wrapper para whisper.cpp
-- **pyannote.py**: Wrapper para pyannote.audio
-- **merge.py**: Algoritmo de combinação O(N+M)
-- **checks.py**: Verificação de dependências
-- **setup.py**: Setup de dependências
+- **audio.py**: Audio conversion via ffmpeg
+- **whisper.py**: whisper.cpp wrapper
+- **pyannote.py**: pyannote.audio wrapper
+- **merge.py**: O(N+M) merge algorithm
+- **checks.py**: Dependency verification
+- **setup.py**: Dependency setup
 
 ### Parsers
 
-- **whisper_parser.py**: Parseia JSON do whisper.cpp (tolerante a formatos)
-- **diarize_parser.py**: Parseia JSON do pyannote.audio
+- **whisper_parser.py**: Parses whisper.cpp JSON (format-tolerant)
+- **diarize_parser.py**: Parses pyannote.audio JSON
 
 ### Exporters
 
-- **json_exporter.py**: Exporta JSON estruturado
-- **srt_exporter.py**: Exporta SRT com prefixo de speaker
-- **markdown_exporter.py**: Exporta Markdown legível
+- **json_exporter.py**: Exports structured JSON
+- **srt_exporter.py**: Exports SRT with speaker prefix
+- **markdown_exporter.py**: Exports readable Markdown
 
-## Algoritmo de Merge
+## Merge Algorithm
 
-O algoritmo de merge usa two-pointer para eficiência O(N+M):
+The merge algorithm uses two-pointer for O(N+M) efficiency:
 
-1. Itera sobre segmentos de transcrição (ordenados por tempo)
-2. Para cada segmento, encontra segmento de diarização com maior overlap
-3. Calcula overlap ratio: `overlap_duration / transcript_duration`
-4. Atribui speaker do segmento de diarização com maior overlap
+1. Iterates over transcription segments (ordered by time)
+2. For each segment, finds diarization segment with highest overlap
+3. Calculates overlap ratio: `overlap_duration / transcript_duration`
+4. Assigns speaker from diarization segment with highest overlap
 
-## Formatos de Saída
+## Output Formats
 
 ### JSON
 
@@ -59,7 +59,7 @@ O algoritmo de merge usa two-pointer para eficiência O(N+M):
     {
       "start_ms": 0,
       "end_ms": 2500,
-      "text": "Olá, bem-vindo",
+      "text": "Hello, welcome",
       "speaker": "SPEAKER_00"
     }
   ]
@@ -71,29 +71,29 @@ O algoritmo de merge usa two-pointer para eficiência O(N+M):
 ```
 1
 00:00:00,000 --> 00:00:02,500
-[SPEAKER_00] Olá, bem-vindo
+[SPEAKER_00] Hello, welcome
 ```
 
 ### Markdown
 
 ```markdown
-# Transcrição
+# Transcription
 
 ## SPEAKER_00
-**[00:00]** Olá, bem-vindo
+**[00:00]** Hello, welcome
 ```
 
-## Dependências Externas
+## External Dependencies
 
-- **whisper.cpp**: Compilado com `WHISPER_METAL=1`
-- **pyannote.audio 3.4.0**: Em venv isolado com PyTorch MPS
+- **whisper.cpp**: Compiled with `WHISPER_METAL=1`
+- **pyannote.audio 3.4.0**: In isolated venv with PyTorch MPS
 - **ffmpeg**: Via Homebrew
 
-## Performance Esperada
+## Expected Performance
 
-Para 1 hora de áudio:
-- Conversão: ~6s
-- Transcrição (medium): ~12 min
-- Diarização: ~10 min
+For 1 hour of audio:
+- Conversion: ~6s
+- Transcription (medium): ~12 min
+- Diarization: ~10 min
 - Merge: <100ms
 - **Total: ~22 min**

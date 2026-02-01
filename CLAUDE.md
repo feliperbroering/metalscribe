@@ -1,46 +1,46 @@
-# Claude AI - Contexto do Projeto metalscribe
+# Claude AI - metalscribe Project Context
 
-## Visão Geral
+## Overview
 
-O metalscribe é um CLI Python que combina transcrição de áudio (whisper.cpp) e diarização (pyannote.audio) com aceleração GPU nativa no macOS usando Metal e MPS.
+metalscribe is a Python CLI that combines audio transcription (whisper.cpp) and speaker diarization (pyannote.audio) with native GPU acceleration on macOS using Metal and MPS.
 
-## Arquitetura
+## Architecture
 
-### Fluxo Principal
+### Main Flow
 
-1. **Conversão de Áudio**: ffmpeg converte qualquer formato para WAV 16kHz mono
-2. **Transcrição**: whisper.cpp com Metal GPU gera segmentos de texto com timestamps
-3. **Diarização**: pyannote.audio com MPS GPU identifica quem fala quando
-4. **Merge**: Algoritmo O(N+M) combina transcrição e diarização
-5. **Export**: Gera JSON, SRT e Markdown
+1. **Audio Conversion**: ffmpeg converts any format to WAV 16kHz mono
+2. **Transcription**: whisper.cpp with Metal GPU generates text segments with timestamps
+3. **Diarization**: pyannote.audio with MPS GPU identifies who speaks when
+4. **Merge**: O(N+M) algorithm combines transcription and diarization
+5. **Export**: Generates JSON, SRT, and Markdown
 
-### Estrutura de Código
+### Code Structure
 
-- `src/metalscribe/cli.py` - Entry point Click
-- `src/metalscribe/config.py` - Configurações, paths, exit codes
-- `src/metalscribe/commands/` - Comandos CLI
-- `src/metalscribe/core/` - Lógica de negócio (whisper, pyannote, merge)
-- `src/metalscribe/parsers/` - Parsers de output
-- `src/metalscribe/exporters/` - Exportadores de formato
+- `src/metalscribe/cli.py` - Click entry point
+- `src/metalscribe/config.py` - Configuration, paths, exit codes
+- `src/metalscribe/commands/` - CLI commands
+- `src/metalscribe/core/` - Business logic (whisper, pyannote, merge)
+- `src/metalscribe/parsers/` - Output parsers
+- `src/metalscribe/exporters/` - Format exporters
 
-## Convenções
+## Conventions
 
-- Exit codes conforme spec (0-61)
-- Logging estruturado com Rich
-- Todos os comandos externos via subprocess com timeout
-- Cache de modelos em `~/.cache/metalscribe/`
-- Whisper instalado via Homebrew ou source build
-- Pyannote em venv isolado em `pyannote_venv/`
+- Exit codes per spec (0-61)
+- Structured logging with Rich
+- All external commands via subprocess with timeout
+- Model cache in `~/.cache/metalscribe/`
+- Whisper installed via Homebrew or source build
+- Pyannote in isolated venv at `pyannote_venv/`
 
-## Dependências Externas
+## External Dependencies
 
-- `whisper.cpp` - Compilado com Metal support
-- `pyannote.audio` 3.4.0 - Em venv Python separado
+- `whisper.cpp` - Compiled with Metal support
+- `pyannote.audio` 3.4.0 - In separate Python venv
 - `ffmpeg` - Via Homebrew
 
-## Notas de Implementação
+## Implementation Notes
 
-- Whisper models baixados do HuggingFace
-- Pyannote requer token HF para modelos
-- Merge usa algoritmo two-pointer para eficiência O(N+M)
-- SRT inclui prefixo de speaker: `[SPEAKER_00] texto`
+- Whisper models downloaded from HuggingFace
+- Pyannote requires HF token for models
+- Merge uses two-pointer algorithm for O(N+M) efficiency
+- SRT includes speaker prefix: `[SPEAKER_00] text`

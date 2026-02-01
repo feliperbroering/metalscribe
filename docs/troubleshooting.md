@@ -1,83 +1,83 @@
 # Troubleshooting - metalscribe
 
-## Problemas Comuns
+## Common Issues
 
-### whisper.cpp não encontrado
+### whisper.cpp not found
 
-**Sintoma**: `whisper.cpp não encontrado`
+**Symptom**: `whisper.cpp not found`
 
-**Solução**:
+**Solution**:
 ```bash
 metalscribe doctor --setup
-# ou
+# or
 bash scripts/install_whisper_gpu.sh
 ```
 
-### pyannote.audio não encontrado
+### pyannote.audio not found
 
-**Sintoma**: `pyannote.audio não está configurado`
+**Symptom**: `pyannote.audio is not configured`
 
-**Solução**:
+**Solution**:
 ```bash
 metalscribe doctor --setup
-# ou
+# or
 bash scripts/install_diarization_gpu.sh
 ```
 
-### Token do HuggingFace não configurado
+### HuggingFace token not configured
 
-**Sintoma**: `Token do HuggingFace não encontrado`
+**Symptom**: `HuggingFace token not found`
 
-**Solução**:
+**Solution**:
 ```bash
-export HF_TOKEN=seu_token_aqui
-# ou
-export HUGGINGFACE_TOKEN=seu_token_aqui
+export HF_TOKEN=your_token_here
+# or
+export HUGGINGFACE_TOKEN=your_token_here
 ```
 
-### Metal/MPS não disponível
+### Metal/MPS not available
 
-**Sintoma**: Processamento muito lento
+**Symptom**: Processing is very slow
 
-**Verificação**:
+**Check**:
 ```bash
 metalscribe doctor --check-only
 ```
 
-**Nota**: Metal/MPS só está disponível no macOS. Se estiver em outro sistema, o processamento será mais lento.
+**Note**: Metal/MPS is only available on macOS. On other systems, processing will be slower.
 
-### Erro de conversão de áudio
+### Audio conversion error
 
-**Sintoma**: `Falha ao converter áudio`
+**Symptom**: `Failed to convert audio`
 
-**Solução**:
-1. Verifique se ffmpeg está instalado: `brew install ffmpeg`
-2. Verifique se o arquivo de áudio está corrompido
-3. Tente converter manualmente: `ffmpeg -i input.m4a -ar 16000 -ac 1 output.wav`
+**Solution**:
+1. Check if ffmpeg is installed: `brew install ffmpeg`
+2. Check if audio file is corrupted
+3. Try manual conversion: `ffmpeg -i input.m4a -ar 16000 -ac 1 output.wav`
 
-### Timeout na transcrição/diarização
+### Timeout in transcription/diarization
 
-**Sintoma**: `Comando excedeu timeout`
+**Symptom**: `Command exceeded timeout`
 
-**Solução**:
-- Arquivos muito longos podem precisar de mais tempo
-- O timeout padrão é 1 hora
-- Para arquivos maiores, considere dividir o áudio
+**Solution**:
+- Very long files may need more time
+- Default timeout is 1 hour
+- For larger files, consider splitting the audio
 
-## Logs e Debug
+## Logs and Debug
 
-### Modo Verbose
+### Verbose Mode
 
-Execute comandos com `--verbose` para ver logs detalhados:
+Run commands with `--verbose` to see detailed logs:
 
 ```bash
 metalscribe run --input audio.m4a --verbose
 ```
 
-### Arquivo de Timings
+### Timings File
 
-O comando `run` gera `*.timings.log` com tempos de cada etapa.
+The `run` command generates `*.timings.log` with timing for each step.
 
-## Suporte
+## Support
 
-Para mais ajuda, abra uma issue no GitHub.
+For more help, open an issue on GitHub.

@@ -1,16 +1,16 @@
 # API Reference - metalscribe
 
-## Comandos CLI
+## CLI Commands
 
 ### `metalscribe doctor`
 
-Verifica e configura dependências.
+Checks and configures dependencies.
 
-**Opções**:
-- `--check-only`: Apenas verifica, não faz setup
-- `--setup`: Configura dependências faltantes
+**Options**:
+- `--check-only`: Only check, do not setup
+- `--setup`: Configure missing dependencies
 
-**Exemplo**:
+**Example**:
 ```bash
 metalscribe doctor --check-only
 metalscribe doctor --setup
@@ -18,68 +18,68 @@ metalscribe doctor --setup
 
 ### `metalscribe transcribe`
 
-Transcreve áudio usando whisper.cpp.
+Transcribes audio using whisper.cpp.
 
-**Opções**:
-- `--input, -i`: Arquivo de áudio (obrigatório)
-- `--model, -m`: Modelo (tiny, base, small, medium, large-v3) [padrão: medium]
-- `--lang, -l`: Código de idioma (ex: pt, en)
-- `--output, -o`: Arquivo JSON de saída
-- `--verbose, -v`: Modo verbose
+**Options**:
+- `--input, -i`: Audio file (required)
+- `--model, -m`: Model (tiny, base, small, medium, large-v3) [default: medium]
+- `--lang, -l`: Language code (e.g., pt, en)
+- `--output, -o`: Output JSON file
+- `--verbose, -v`: Verbose mode
 
-**Exemplo**:
+**Example**:
 ```bash
-metalscribe transcribe --input audio.m4a --model medium --lang pt
+metalscribe transcribe --input audio.m4a --model medium --lang en
 ```
 
 ### `metalscribe diarize`
 
-Identifica locutores usando pyannote.audio.
+Identifies speakers using pyannote.audio.
 
-**Opções**:
-- `--input, -i`: Arquivo de áudio (obrigatório)
-- `--speakers, -s`: Número de speakers (opcional)
-- `--output, -o`: Arquivo JSON de saída
-- `--verbose, -v`: Modo verbose
+**Options**:
+- `--input, -i`: Audio file (required)
+- `--speakers, -s`: Number of speakers (optional)
+- `--output, -o`: Output JSON file
+- `--verbose, -v`: Verbose mode
 
-**Exemplo**:
+**Example**:
 ```bash
 metalscribe diarize --input audio.m4a --speakers 2
 ```
 
 ### `metalscribe combine`
 
-Combina resultados de transcrição e diarização.
+Combines transcription and diarization results.
 
-**Opções**:
-- `--transcript, -t`: Arquivo JSON de transcrição (obrigatório)
-- `--diarize, -d`: Arquivo JSON de diarização (obrigatório)
-- `--output, -o`: Prefixo dos arquivos de saída
-- `--verbose, -v`: Modo verbose
+**Options**:
+- `--transcript, -t`: Transcription JSON file (required)
+- `--diarize, -d`: Diarization JSON file (required)
+- `--output, -o`: Output file prefix
+- `--verbose, -v`: Verbose mode
 
-**Exemplo**:
+**Example**:
 ```bash
 metalscribe combine --transcript transcript.json --diarize diarize.json
 ```
 
 ### `metalscribe run`
 
-Pipeline completo: transcrição + diarização + merge + export.
+Complete pipeline: transcription + diarization + merge + export.
 
-**Opções**:
-- `--input, -i`: Arquivo de áudio (obrigatório)
-- `--model, -m`: Modelo do Whisper [padrão: medium]
-- `--lang, -l`: Código de idioma
-- `--speakers, -s`: Número de speakers
-- `--output, -o`: Prefixo dos arquivos de saída
-- `--verbose, -v`: Modo verbose
+**Options**:
+- `--input, -i`: Audio file (required)
+- `--model, -m`: Whisper model [default: medium]
+- `--lang, -l`: Language code
+- `--speakers, -s`: Number of speakers
+- `--output, -o`: Output file prefix
+- `--verbose, -v`: Verbose mode
 
-**Exemplo**:
+**Example**:
 ```bash
 metalscribe run --input audio.m4a --model medium --speakers 2
 ```
 
-## Módulos Python
+## Python Modules
 
 ### `metalscribe.core.audio`
 
@@ -135,7 +135,7 @@ export_srt(segments: List[MergedSegment], output_path: Path)
 export_markdown(segments: List[MergedSegment], output_path: Path, title: Optional[str] = None, metadata: Optional[dict] = None)
 ```
 
-## Modelos de Dados
+## Data Models
 
 ### `TranscriptSegment`
 

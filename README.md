@@ -1,80 +1,80 @@
 # metalscribe
 
-CLI 100% local para transcrição e diarização de áudio com aceleração GPU Metal/MPS no macOS.
+100% local CLI for audio transcription and speaker diarization with Metal/MPS GPU acceleration on macOS.
 
-## Características
+## Features
 
-- 🎤 **Transcrição**: Usa `whisper.cpp` com aceleração Metal GPU
-- 👥 **Diarização**: Identifica locutores usando `pyannote.audio` com aceleração MPS GPU
-- 📝 **Múltiplos formatos**: Gera JSON, SRT e Markdown
-- ⚡ **100% Local**: Tudo roda na sua máquina, sem dependências de serviços externos (exceto refinamento opcional com LLM)
-- ✨ **Refinamento opcional**: Use LLM para refinar transcrições e corrigir erros de ASR
-- 🚀 **Performance**: Algoritmo de merge O(N+M) eficiente
+- 🎤 **Transcription**: Uses `whisper.cpp` with Metal GPU acceleration
+- 👥 **Diarization**: Identifies speakers using `pyannote.audio` with MPS GPU acceleration
+- 📝 **Multiple formats**: Generates JSON, SRT, and Markdown
+- ⚡ **100% Local**: Everything runs on your machine, no external service dependencies (except optional LLM refinement)
+- ✨ **Optional Refinement**: Use LLM to refine transcriptions and correct ASR errors
+- 🚀 **Performance**: Efficient O(N+M) merge algorithm
 
-## Requisitos
+## Requirements
 
-- macOS (com suporte Metal/MPS)
+- macOS (with Metal/MPS support)
 - Python 3.11+
 - Homebrew
 - ffmpeg
-- Token do HuggingFace (para pyannote.audio)
+- HuggingFace token (for pyannote.audio)
 
-## Instalação
+## Installation
 
 ```bash
-# Clone o repositório
+# Clone the repository
 git clone <repo-url>
 cd metalscribe
 
-# Instale o projeto
+# Install the project
 pip install -e .
 
-# Configure dependências
+# Configure dependencies
 metalscribe doctor --setup
 ```
 
-## Uso Rápido
+## Quick Start
 
 ```bash
-# Verificar dependências
+# Check dependencies
 metalscribe doctor --check-only
 
-# Configurar ambiente (primeira vez)
+# Configure environment (first time)
 metalscribe doctor --setup
 
-# Pipeline completo (recomendado)
+# Complete pipeline (recommended)
 metalscribe run --input audio.m4a --model medium --speakers 2
 
-# Ou use comandos individuais
-metalscribe transcribe --input audio.m4a --model medium --lang pt
+# Or use individual commands
+metalscribe transcribe --input audio.m4a --model medium --lang en
 metalscribe diarize --input audio.m4a --speakers 2
 metalscribe combine --transcript transcript.json --diarize diarize.json
 ```
 
-## Comandos
+## Commands
 
 ### `metalscribe doctor`
 
-Verifica e configura dependências do sistema.
+Checks and configures system dependencies.
 
 ```bash
-metalscribe doctor --check-only  # Apenas verifica
-metalscribe doctor --setup       # Configura dependências faltantes
+metalscribe doctor --check-only  # Just check
+metalscribe doctor --setup       # Configure missing dependencies
 ```
 
 ### `metalscribe transcribe`
 
-Transcreve áudio usando whisper.cpp.
+Transcribes audio using whisper.cpp.
 
 ```bash
-metalscribe transcribe --input audio.m4a --model medium --lang pt
+metalscribe transcribe --input audio.m4a --model medium --lang en
 ```
 
-**Modelos disponíveis**: `tiny`, `base`, `small`, `medium`, `large-v3`
+**Available models**: `tiny`, `base`, `small`, `medium`, `large-v3`
 
 ### `metalscribe diarize`
 
-Identifica locutores usando pyannote.audio.
+Identifies speakers using pyannote.audio.
 
 ```bash
 metalscribe diarize --input audio.m4a --speakers 2
@@ -82,7 +82,7 @@ metalscribe diarize --input audio.m4a --speakers 2
 
 ### `metalscribe combine`
 
-Combina resultados de transcrição e diarização.
+Combines transcription and diarization results.
 
 ```bash
 metalscribe combine --transcript transcript.json --diarize diarize.json
@@ -90,92 +90,92 @@ metalscribe combine --transcript transcript.json --diarize diarize.json
 
 ### `metalscribe run`
 
-Pipeline completo: transcrição + diarização + merge + export.
+Complete pipeline: transcription + diarization + merge + export.
 
 ```bash
 metalscribe run --input audio.m4a --model medium --speakers 2
 ```
 
-Gera automaticamente:
-- `audio_final.json` - JSON estruturado
-- `audio_final.srt` - Legendas SRT
-- `audio_final.md` - Markdown legível
-- `audio_final.timings.log` - Log de timings
+Automatically generates:
+- `audio_final.json` - Structured JSON
+- `audio_final.srt` - SRT subtitles
+- `audio_final.md` - Readable Markdown
+- `audio_final.timings.log` - Timing log
 
 ### `metalscribe refine`
 
-Refina uma transcrição markdown usando LLM para corrigir erros de ASR, melhorar pontuação e preservar o estilo natural da fala.
+Refines markdown transcription using LLM to correct ASR errors, improve punctuation, and preserve natural speech style.
 
 ```bash
-# Refinar usando OpenAI (padrão)
-export OPENAI_API_KEY="sua-chave-aqui"
-metalscribe refine --input transcricao.md
+# Refine using OpenAI (default)
+export OPENAI_API_KEY="your-key-here"
+metalscribe refine --input transcript.md
 
-# Refinar usando Anthropic
-export ANTHROPIC_API_KEY="sua-chave-aqui"
-metalscribe refine --input transcricao.md --provider anthropic
+# Refine using Anthropic
+export ANTHROPIC_API_KEY="your-key-here"
+metalscribe refine --input transcript.md --provider anthropic
 
-# Especificar modelo e arquivo de saída
-metalscribe refine --input transcricao.md --output refinada.md --model gpt-4o
+# Specify model and output file
+metalscribe refine --input transcript.md --output refined.md --model gpt-4o
 ```
 
-**Características:**
-- Corrige erros fonéticos e semânticos (ex: "concerto" → "conserto")
-- Preserva estilo informal, gírias e contrações
-- Melhora pontuação mantendo prosódia natural
-- Remove alucinações e repetições robóticas
-- Mantém estrutura de falantes e timestamps
+**Features:**
+- Corrects phonetic and semantic errors
+- Preserves informal style, slang, and contractions
+- Improves punctuation while maintaining natural prosody
+- Removes hallucinations and robotic repetitions
+- Maintains speaker structure and timestamps
 
-**Requisitos:**
-- Chave de API (OpenAI ou Anthropic) configurada via variável de ambiente ou `--api-key`
-- Dependência `httpx` instalada (incluída automaticamente)
+**Requirements:**
+- API key (OpenAI or Anthropic) configured via environment variable or `--api-key`
+- `httpx` dependency installed (included automatically)
 
-## Formatos de Áudio Suportados
+## Supported Audio Formats
 
 m4a, mp3, mp4, flac, ogg, webm, aac, wma, aiff, wav
 
 ## Performance
 
-Para 1 hora de áudio:
-- Conversão: ~6s
-- Transcrição (medium): ~12 min
-- Diarização: ~10 min
+For 1 hour of audio:
+- Conversion: ~6s
+- Transcription (medium): ~12 min
+- Diarization: ~10 min
 - Merge: <100ms
 - **Total: ~22 min**
 
-## Documentação
+## Documentation
 
 - [Technical Specification](docs/TECHSPEC.md)
 - [API Reference](docs/api.md)
 - [Troubleshooting](docs/troubleshooting.md)
 
-## Desenvolvimento
+## Development
 
 ```bash
-# Instalar em modo desenvolvimento
+# Install in development mode
 pip install -e .
 
-# Executar CLI
+# Run CLI
 metalscribe --version
 
-# Executar testes
+# Run tests
 pytest tests/
 ```
 
-## Scripts de Instalação
+## Installation Scripts
 
-Scripts auxiliares estão disponíveis em `scripts/`:
+Helper scripts are available in `scripts/`:
 
 ```bash
-bash scripts/install_whisper_gpu.sh      # Instala whisper.cpp
-bash scripts/install_diarization_gpu.sh  # Instala pyannote.audio
-bash scripts/install_all.sh               # Instala tudo
+bash scripts/install_whisper_gpu.sh      # Installs whisper.cpp
+bash scripts/install_diarization_gpu.sh  # Installs pyannote.audio
+bash scripts/install_all.sh               # Installs everything
 ```
 
-## Licença
+## License
 
 MIT
 
-## Autor
+## Author
 
 Felipe R. Broering
