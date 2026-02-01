@@ -1,0 +1,46 @@
+# Regras do Projeto metalscribe
+
+## Visão Geral
+
+O metalscribe é um CLI Python para transcrição e diarização de áudio usando whisper.cpp e pyannote.audio com aceleração GPU Metal/MPS no macOS.
+
+## Convenções de Código
+
+- Python 3.11+
+- Type hints obrigatórios
+- Formatação com ruff (line-length 100)
+- Docstrings em português quando apropriado
+- Exit codes via `ExitCode` enum de `config.py`
+
+## Estrutura de Arquivos
+
+- `src/metalscribe/cli.py` - Entry point Click
+- `src/metalscribe/config.py` - Configurações e constantes
+- `src/metalscribe/commands/` - Comandos CLI individuais
+- `src/metalscribe/core/` - Lógica de negócio
+- `src/metalscribe/parsers/` - Parsers de output externo
+- `src/metalscribe/exporters/` - Exportadores de formato
+
+## Dependências Externas
+
+- `whisper.cpp` - Compilado com Metal, instalado via Homebrew ou source
+- `pyannote.audio` 3.4.0 - Em venv isolado (`pyannote_venv/`)
+- `ffmpeg` - Via Homebrew
+
+## Paths e Cache
+
+- Cache: `~/.cache/metalscribe/`
+- Whisper models: `~/.cache/metalscribe/models/`
+- Homebrew prefix: `/opt/homebrew` (ARM) ou `/usr/local` (Intel)
+
+## Logging
+
+- Usar Rich para output formatado
+- Logs estruturados para timings
+- Mensagens de erro claras e acionáveis
+
+## Testes
+
+- Fixtures em `tests/fixtures/`
+- Unit tests em `tests/unit/`
+- Integration tests em `tests/integration/`
