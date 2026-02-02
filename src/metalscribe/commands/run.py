@@ -1,4 +1,4 @@
-"""Comando run - pipeline completo."""
+"""Run command - full pipeline."""
 
 import logging
 import tempfile
@@ -7,6 +7,7 @@ from pathlib import Path
 import click
 from rich.console import Console
 
+from metalscribe.config import DEFAULT_LANGUAGE, get_prompt_language
 from metalscribe.core.audio import convert_to_wav_16k
 from metalscribe.core.merge import merge_segments
 from metalscribe.core.pyannote import run_diarization
@@ -27,70 +28,71 @@ logger = logging.getLogger(__name__)
     "-i",
     type=click.Path(exists=True, path_type=Path),
     required=True,
-    help="Arquivo de áudio de entrada",
+    help="Input audio file",
 )
 @click.option(
     "--model",
     "-m",
     type=click.Choice(["tiny", "base", "small", "medium", "large-v3"], case_sensitive=False),
     default="medium",
-    help="Modelo do Whisper",
+    help="Whisper model",
 )
 @click.option(
     "--lang",
     "-l",
     type=str,
-    default=None,
-    help="Código de idioma (ex: pt, en)",
+    default=DEFAULT_LANGUAGE,
+    help=f"Language code (e.g., pt, en). Default: {DEFAULT_LANGUAGE}",
 )
 @click.option(
     "--speakers",
     "-s",
     type=int,
     default=None,
-    help="Número de speakers (opcional, auto-detecta se não especificado)",
+    help="Number of speakers (optional, auto-detects if not specified)",
 )
 @click.option(
     "--output",
     "-o",
     type=click.Path(path_type=Path),
     default=None,
-    help="Prefixo dos arquivos de saída (padrão: baseado no input)",
+    help="Output files prefix (default: based on input)",
 )
 @click.option(
     "--verbose",
     "-v",
     is_flag=True,
-    help="Modo verbose",
+    help="Verbose mode",
 )
 def run(input: Path, model: str, lang: str, speakers: int, output: Path, verbose: bool) -> None:
-    """Pipeline completo: transcrição + diarização + merge + export."""
+    """Full pipeline: transcription + diarization + merge + export."""
     setup_logging(verbose=verbose)
 
     import time
 
     start_time = time.time()
 
-    # Determina prefixo de output
+    # Determine output prefix
     if output is None:
-        output = input.with_suffix("").with_suffix("_final")
+        # Remove extension and add _final suffix
+        output = input.parent / f"{input.stem}_final"
     else:
         output = Path(output)
 
-    # Obtém duração do áudio para calcular RTF
+    # Get audio duration to calculate RTF
     audio_duration = get_audio_duration(input)
 
-    # Etapa 1: Conversão de áudio
-    console.print("[cyan]Etapa 1: Convertendo áudio...[/cyan]")
+    # Step 1: Audio conversion
+    console.print("[cyan]Step 1: Converting audio...[/cyan]")
     wav_path = Path(tempfile.mktemp(suffix=".wav"))
     convert_start = time.time()
     convert_to_wav_16k(input, wav_path)
     convert_time = time.time() - convert_start
     convert_rtf = convert_time / audio_duration if audio_duration > 0 else None
-    log_timing("Conversão", convert_time, rtf=convert_rtf)
+    log_timing("Conversion", convert_time, rtf=convert_rtf)
 
-    # Etapa 2: Transcrição
-    console.print("[cyan]Etapa 2: Transcrevendo...[/cyan]")
+    # Step 2: Transcription
+    console.print("[cyan]Step 2: Transcribing...[/cyan]")
     transcript_json = Path(tempfile.mktemp(suffix=".json"))
     transcribe_start = time.time()
     transcript_segments = run_transcription(
@@ -98,35 +100,39 @@ def run(input: Path, model: str, lang: str, speakers: int, output: Path, verbose
     )
     transcribe_time = time.time() - transcribe_start
     transcribe_rtf = transcribe_time / audio_duration if audio_duration > 0 else None
-    log_timing("Transcrição", transcribe_time, rtf=transcribe_rtf)
+    log_timing("Transcription", transcribe_time, rtf=transcribe_rtf)
 
-    # Etapa 3: Diarização
-    console.print("[cyan]Etapa 3: Diarizando...[/cyan]")
+    # Step 3: Diarization
+    console.print("[cyan]Step 3: Diarizing...[/cyan]")
     diarize_json = Path(tempfile.mktemp(suffix=".json"))
     diarize_start = time.time()
     diarize_segments = run_diarization(wav_path, num_speakers=speakers, output_json=diarize_json)
     diarize_time = time.time() - diarize_start
     diarize_rtf = diarize_time / audio_duration if audio_duration > 0 else None
-    log_timing("Diarização", diarize_time, rtf=diarize_rtf)
+    log_timing("Diarization", diarize_time, rtf=diarize_rtf)
 
-    # Etapa 4: Merge
-    console.print("[cyan]Etapa 4: Combinando...[/cyan]")
+    # Step 4: Merge
+    console.print("[cyan]Step 4: Combining...[/cyan]")
     merge_start = time.time()
     merged = merge_segments(transcript_segments, diarize_segments)
     merge_time = time.time() - merge_start
     log_timing("Merge", merge_time)
 
-    # Etapa 5: Export
-    console.print("[cyan]Etapa 5: Exportando...[/cyan]")
+    # Step 5: Export
+    console.print("[cyan]Step 5: Exporting...[/cyan]")
     export_start = time.time()
 
     json_path = output.with_suffix(".json")
     srt_path = output.with_suffix(".srt")
     md_path = output.with_suffix(".md")
 
+    # Resolve prompt language from Whisper language code
+    prompt_language = get_prompt_language(lang)
+    
     metadata = {
         "model": model,
-        "language": lang or "auto",
+        "language": lang,
+        "prompt_language": prompt_language,
         "num_speakers": speakers or "auto",
         "input_file": str(input),
     }
@@ -143,14 +149,14 @@ def run(input: Path, model: str, lang: str, speakers: int, output: Path, verbose
     total_time = time.time() - start_time
     total_rtf = total_time / audio_duration if audio_duration > 0 else None
     with open(timings_log, "w") as f:
-        f.write(f"Duração do áudio: {audio_duration:.2f}s\n")
-        f.write(f"\nConversão: {convert_time:.2f}s")
+        f.write(f"Audio duration: {audio_duration:.2f}s\n")
+        f.write(f"\nConversion: {convert_time:.2f}s")
         if convert_rtf:
             f.write(f" (RTF: {convert_rtf:.3f})")
-        f.write(f"\nTranscrição: {transcribe_time:.2f}s")
+        f.write(f"\nTranscription: {transcribe_time:.2f}s")
         if transcribe_rtf:
             f.write(f" (RTF: {transcribe_rtf:.3f})")
-        f.write(f"\nDiarização: {diarize_time:.2f}s")
+        f.write(f"\nDiarization: {diarize_time:.2f}s")
         if diarize_rtf:
             f.write(f" (RTF: {diarize_rtf:.3f})")
         f.write(f"\nMerge: {merge_time:.2f}s\n")
@@ -162,8 +168,8 @@ def run(input: Path, model: str, lang: str, speakers: int, output: Path, verbose
 
     log_timing("Total", total_time)
 
-    console.print("\n[green]✓ Pipeline concluído![/green]")
-    console.print("[green]Arquivos gerados:[/green]")
+    console.print("\n[green]✓ Pipeline complete![/green]")
+    console.print("[green]Generated files:[/green]")
     console.print(f"  - {json_path}")
     console.print(f"  - {srt_path}")
     console.print(f"  - {md_path}")

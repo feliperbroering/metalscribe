@@ -1,4 +1,4 @@
-"""Comando de combinação."""
+"""Combine command."""
 
 import logging
 from pathlib import Path
@@ -24,59 +24,59 @@ logger = logging.getLogger(__name__)
     "-t",
     type=click.Path(exists=True, path_type=Path),
     required=True,
-    help="Arquivo JSON de transcrição",
+    help="Transcription JSON file",
 )
 @click.option(
     "--diarize",
     "-d",
     type=click.Path(exists=True, path_type=Path),
     required=True,
-    help="Arquivo JSON de diarização",
+    help="Diarization JSON file",
 )
 @click.option(
     "--output",
     "-o",
     type=click.Path(path_type=Path),
     default=None,
-    help="Prefixo dos arquivos de saída (padrão: baseado no transcript)",
+    help="Output files prefix (default: based on transcript)",
 )
 @click.option(
     "--verbose",
     "-v",
     is_flag=True,
-    help="Modo verbose",
+    help="Verbose mode",
 )
 def combine(transcript: Path, diarize: Path, output: Path, verbose: bool) -> None:
-    """Combina resultados de transcrição e diarização."""
+    """Combines transcription and diarization results."""
     setup_logging(verbose=verbose)
 
     import time
 
     start_time = time.time()
 
-    # Parseia inputs
-    console.print("[cyan]Carregando arquivos...[/cyan]")
+    # Parse inputs
+    console.print("[cyan]Loading files...[/cyan]")
     transcript_segments = parse_whisper_output(transcript)
     diarize_segments = parse_diarize_output(diarize)
 
     load_time = time.time() - start_time
-    log_timing("Carregamento", load_time)
+    log_timing("Loading", load_time)
 
     # Merge
-    console.print("[cyan]Combinando segmentos...[/cyan]")
+    console.print("[cyan]Merging segments...[/cyan]")
     merge_start = time.time()
     merged = merge_segments(transcript_segments, diarize_segments)
     merge_time = time.time() - merge_start
     log_timing("Merge", merge_time)
 
-    # Determina prefixo de output
+    # Determine output prefix
     if output is None:
         output = transcript.with_suffix("").with_suffix("_final")
     else:
         output = Path(output)
 
-    # Exporta formatos
-    console.print("[cyan]Exportando formatos...[/cyan]")
+    # Export formats
+    console.print("[cyan]Exporting formats...[/cyan]")
     export_start = time.time()
 
     json_path = output.with_suffix(".json")
@@ -93,7 +93,7 @@ def combine(transcript: Path, diarize: Path, output: Path, verbose: bool) -> Non
     total_time = time.time() - start_time
     log_timing("Total", total_time)
 
-    console.print("[green]✓ Arquivos gerados:[/green]")
+    console.print("[green]Generated files:[/green]")
     console.print(f"  - {json_path}")
     console.print(f"  - {srt_path}")
     console.print(f"  - {md_path}")

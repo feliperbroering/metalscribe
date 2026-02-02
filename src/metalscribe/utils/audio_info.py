@@ -1,4 +1,4 @@
-"""Utilitários para obter informações de áudio."""
+"""Audio information utilities."""
 
 import json
 import logging
@@ -11,13 +11,13 @@ logger = logging.getLogger(__name__)
 
 def get_audio_duration(audio_path: Path) -> float:
     """
-    Obtém duração do áudio em segundos usando ffprobe.
+    Gets audio duration in seconds using ffprobe.
 
     Args:
-        audio_path: Caminho do arquivo de áudio
+        audio_path: Audio file path
 
     Returns:
-        Duração em segundos
+        Duration in seconds
     """
     try:
         result = run_command(
@@ -37,5 +37,5 @@ def get_audio_duration(audio_path: Path) -> float:
         duration = float(data["format"]["duration"])
         return duration
     except Exception as e:
-        logger.warning(f"Não foi possível obter duração do áudio: {e}")
+        logger.warning(f"Could not get audio duration: {e}")
         return 0.0

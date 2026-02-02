@@ -1,4 +1,4 @@
-"""Wrapper para whisper.cpp."""
+"""Wrapper for whisper.cpp."""
 
 import logging
 import tempfile
@@ -21,33 +21,33 @@ def run_transcription(
     output_json: Optional[Path] = None,
 ) -> List[TranscriptSegment]:
     """
-    Executa transcrição usando whisper.cpp com Metal GPU.
+    Runs transcription using whisper.cpp with Metal GPU.
 
     Args:
-        audio_path: Caminho do arquivo WAV 16kHz
-        model_name: Nome do modelo (tiny, base, small, medium, large-v3)
-        language: Código de idioma (opcional, ex: 'pt')
-        output_json: Caminho para salvar JSON (opcional)
+        audio_path: Path to WAV 16kHz file
+        model_name: Model name (tiny, base, small, medium, large-v3)
+        language: Language code (optional, e.g., 'pt')
+        output_json: Path to save JSON (optional)
 
     Returns:
-        Lista de TranscriptSegment
+        List of TranscriptSegment
 
     Raises:
-        SystemExit: Se transcrição falhar
+        SystemExit: If transcription fails
     """
-    # Encontra binário do whisper
+    # Find whisper binary
     from metalscribe.config import get_cache_dir
 
     brew_prefix = get_brew_prefix()
     cache_dir = get_cache_dir()
 
     whisper_paths = [
-        # Prioridade 1: compilado localmente no cache
+        # Priority 1: locally compiled in cache
         cache_dir / "whisper.cpp" / "build" / "bin" / "whisper-cli",
-        # Prioridade 2: Homebrew
+        # Priority 2: Homebrew
         brew_prefix / "bin" / "whisper",
         brew_prefix / "bin" / "whisper-cli",
-        # Prioridade 3: paths globais
+        # Priority 3: global paths
         Path("/usr/local/bin/whisper"),
         Path("/usr/local/bin/whisper-cli"),
     ]
@@ -59,22 +59,22 @@ def run_transcription(
             break
 
     if not whisper_bin:
-        logger.error("whisper.cpp não encontrado. Execute: metalscribe doctor --setup")
+        logger.error("whisper.cpp not found. Run: metalscribe doctor --setup")
         exit(ExitCode.MISSING_DEPENDENCY)
 
-    # Baixa modelo se necessário
+    # Download model if needed
     model_path = download_whisper_model(model_name)
 
-    # Prepara output JSON
+    # Prepare output JSON
     if output_json is None:
         output_json = Path(tempfile.mktemp(suffix=".json"))
 
-    # Remove extensão .json para -of (whisper adiciona automaticamente)
+    # Remove .json extension for -of (whisper adds automatically)
     output_base = str(output_json).rsplit(".json", 1)[0]
 
-    logger.info(f"Transcrevendo com modelo {model_name}...")
+    logger.info(f"Transcribing with model {model_name}...")
 
-    # Comando whisper: whisper -m model.ggml -f audio.wav -oj -of output_base
+    # Whisper command: whisper -m model.ggml -f audio.wav -oj -of output_base
     cmd = [
         str(whisper_bin),
         "-m",
@@ -89,20 +89,20 @@ def run_transcription(
     if language:
         cmd.extend(["-l", language])
 
-    # Executa transcrição
+    # Run transcription
     try:
-        run_command(cmd, timeout=3600)  # 1 hora timeout
+        run_command(cmd, timeout=3600)  # 1 hour timeout
 
         if not output_json.exists():
-            logger.error(f"JSON de output não encontrado: {output_json}")
+            logger.error(f"Output JSON not found: {output_json}")
             exit(ExitCode.TRANSCRIPTION_FAILED)
 
-        # Parseia resultado
+        # Parse result
         segments = parse_whisper_output(output_json)
 
-        logger.info(f"Transcrição concluída: {len(segments)} segmentos")
+        logger.info(f"Transcription complete: {len(segments)} segments")
         return segments
 
     except Exception as e:
-        logger.error(f"Erro na transcrição: {e}")
+        logger.error(f"Transcription error: {e}")
         exit(ExitCode.TRANSCRIPTION_FAILED)

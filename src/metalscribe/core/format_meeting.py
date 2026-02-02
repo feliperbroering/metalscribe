@@ -1,4 +1,4 @@
-"""Module for refining transcriptions using LLM."""
+"""Module for formatting meeting transcriptions using LLM."""
 
 import logging
 import re
@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Optional
 
 from metalscribe.config import (
+    DEFAULT_LLM_MODEL,
     DEFAULT_PROMPT_LANGUAGE,
     SUPPORTED_PROMPT_LANGUAGES,
     get_prompt_path,
@@ -36,13 +37,22 @@ def extract_language_from_metadata(content: str) -> Optional[str]:
             return match.group(1).strip()
     return None
 
+# Defaults for token estimation
+DEFAULT_CHARS_PER_TOKEN = 4
+DEFAULT_OUTPUT_MULTIPLIER = 1.8
 
-def load_refine_prompt(language: Optional[str] = None) -> str:
+# Pricing per 1K tokens (USD) - for estimation only
+PRICING = {
+    "default": {"input": 0.015, "output": 0.075},
+}
+
+
+def load_format_meeting_prompt(language: Optional[str] = None) -> str:
     """
-    Load the refine prompt from the markdown file.
+    Load the format-meeting prompt from the markdown file.
 
-    Extracts prompt content removing only the main title,
-    but keeping the markdown structure for better LLM readability.
+    Returns the content removing only the main title, keeping the markdown
+    structure for better LLM readability.
     
     Args:
         language: Language code (e.g., "pt-BR"). Uses default if None.
@@ -50,7 +60,7 @@ def load_refine_prompt(language: Optional[str] = None) -> str:
     Returns:
         The prompt content as string.
     """
-    prompt_path = get_prompt_path("refine", language)
+    prompt_path = get_prompt_path("format-meeting", language)
     content = prompt_path.read_text(encoding="utf-8")
 
     # Remove only the main title
@@ -92,50 +102,73 @@ def get_language_warning(language: str, source: str = "default") -> Optional[str
     return None
 
 
-def refine_text(
+def estimate_tokens(text: str, prompt: str) -> dict:
+    """
+    Estimate tokens for the API call.
+
+    Args:
+        text: The input text to be processed
+        prompt: The system prompt
+
+    Returns:
+        Dictionary with token estimates and cost estimation
+    """
+    input_tokens = (len(text) + len(prompt)) // DEFAULT_CHARS_PER_TOKEN
+    output_tokens_estimate = int(input_tokens * DEFAULT_OUTPUT_MULTIPLIER)
+
+    pricing = PRICING["default"]
+    input_cost = (input_tokens / 1000) * pricing["input"]
+    output_cost = (output_tokens_estimate / 1000) * pricing["output"]
+
+    return {
+        "input_tokens": input_tokens,
+        "output_tokens_estimate": output_tokens_estimate,
+        "total_tokens_estimate": input_tokens + output_tokens_estimate,
+        "input_cost_usd": input_cost,
+        "output_cost_usd": output_cost,
+        "total_cost_usd": input_cost + output_cost,
+    }
+
+
+def format_meeting_text(
     text: str,
     model: Optional[str] = None,
-    prompt_path: Optional[Path] = None,
     language: Optional[str] = None,
 ) -> str:
     """
-    Refine text using LLM via Claude Code.
+    Format a meeting transcription text using LLM.
 
     Args:
-        text: Text to be refined
+        text: Text to be formatted
         model: Specific model (optional)
-        prompt_path: Path to custom prompt (optional)
         language: Language code for prompt (optional)
 
     Returns:
-        Refined text
+        Formatted text
     """
-    # Load prompt
-    if prompt_path:
-        prompt = prompt_path.read_text(encoding="utf-8")
-    else:
-        prompt = load_refine_prompt(language)
+    prompt = load_format_meeting_prompt(language)
 
-    provider = LLMProvider(model=model, system_prompt=prompt)
-    response = provider.query(text=text)
+    # Build full message with prompt and text
+    full_text = f"{prompt}\n\n---\n\nTRANSCRIPTION TO FORMAT:\n\n{text}"
+
+    provider = LLMProvider(model=model)
+    response = provider.query(text=full_text)
     return response.text
 
 
-def refine_markdown_file(
+def format_meeting_file(
     input_path: Path,
     output_path: Path,
     model: Optional[str] = None,
-    chunk_size: int = 10000,
     language: Optional[str] = None,
 ) -> tuple[str, str]:
     """
-    Refine a markdown transcription file, preserving structure and metadata.
+    Format a meeting transcription markdown file.
 
     Args:
         input_path: Input markdown file path
         output_path: Output markdown file path
         model: Specific model
-        chunk_size: Maximum chunk size to process (characters, not used yet)
         language: Language code for prompt (overrides file metadata)
     
     Returns:
@@ -168,26 +201,20 @@ def refine_markdown_file(
             break
         header_lines.append(line)
 
-    header = "\n".join(header_lines) if header_lines else ""
     body_lines = lines[body_start_idx:] if body_start_idx < len(lines) else lines
     body = "\n".join(body_lines).strip()
 
     if not body:
-        logger.warning("No content found to refine. Copying original file.")
+        logger.warning("No content found to format. Copying original file.")
         output_path.write_text(content, encoding="utf-8")
         return language, language_source
 
     # Process the body
     logger.info(f"Processing {len(body)} characters of content...")
-    refined_body = refine_text(body, model=model, language=language)
+    formatted_body = format_meeting_text(body, model=model, language=language)
 
-    # Reconstruct file preserving header
-    if header:
-        output_content = header + "\n\n" + refined_body
-    else:
-        output_content = refined_body
-
-    output_path.write_text(output_content, encoding="utf-8")
-    logger.info(f"Refined file saved to: {output_path}")
+    # The format-meeting prompt produces a complete document, so we use it directly
+    output_path.write_text(formatted_body, encoding="utf-8")
+    logger.info(f"Formatted file saved to: {output_path}")
     
     return language, language_source

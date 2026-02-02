@@ -1,4 +1,4 @@
-"""Parser de output do whisper.cpp."""
+"""Parser for whisper.cpp output."""
 
 import json
 import logging
@@ -12,32 +12,32 @@ logger = logging.getLogger(__name__)
 
 def parse_whisper_output(json_path: Path) -> List[TranscriptSegment]:
     """
-    Parseia output JSON do whisper.cpp de forma tolerante.
+    Parses whisper.cpp JSON output tolerantly.
 
     Args:
-        json_path: Caminho do arquivo JSON de output
+        json_path: Path to JSON output file
 
     Returns:
-        Lista de TranscriptSegment normalizados
+        List of normalized TranscriptSegment
 
     Raises:
-        ValueError: Se formato for inválido
+        ValueError: If format is invalid
     """
     with open(json_path) as f:
         data = json.load(f)
 
     segments = []
 
-    # Suporta diferentes formatos de output do whisper
+    # Supports different whisper output formats
     if "transcription" in data:
-        # Formato whisper.cpp CLI (usa 'transcription' e 'offsets' em ms)
+        # whisper.cpp CLI format (uses 'transcription' and 'offsets' in ms)
         for seg in data["transcription"]:
             offsets = seg.get("offsets", {})
             start_ms = int(offsets.get("from", 0))
             end_ms = int(offsets.get("to", start_ms))
             text = seg.get("text", "").strip()
 
-            # Ignora segmentos vazios ou placeholders
+            # Ignore empty segments or placeholders
             if text and not text.startswith("[BLANK_AUDIO]"):
                 segments.append(
                     TranscriptSegment(
@@ -47,7 +47,7 @@ def parse_whisper_output(json_path: Path) -> List[TranscriptSegment]:
                     )
                 )
     elif "segments" in data:
-        # Formato padrão com segments (segundos)
+        # Standard format with segments (seconds)
         for seg in data["segments"]:
             start = float(seg.get("start", 0))
             end = float(seg.get("end", start))
@@ -62,7 +62,7 @@ def parse_whisper_output(json_path: Path) -> List[TranscriptSegment]:
                     )
                 )
     elif isinstance(data, list):
-        # Formato alternativo: lista direta de segmentos
+        # Alternative format: direct list of segments
         for seg in data:
             start = float(seg.get("start", 0))
             end = float(seg.get("end", start))
@@ -77,7 +77,7 @@ def parse_whisper_output(json_path: Path) -> List[TranscriptSegment]:
                     )
                 )
     else:
-        raise ValueError("Formato JSON inválido: esperado 'transcription', 'segments' ou lista")
+        raise ValueError("Invalid JSON format: expected 'transcription', 'segments' or list")
 
-    logger.info(f"Parseados {len(segments)} segmentos de transcrição")
+    logger.info(f"Parsed {len(segments)} transcription segments")
     return segments

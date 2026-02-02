@@ -1,12 +1,19 @@
-"""Comando refine - refinamento de transcrições usando LLM."""
+"""Refine command - refine transcriptions using LLM."""
 
 import logging
 from pathlib import Path
 
 import click
 from rich.console import Console
+from rich.panel import Panel
 
-from metalscribe.core.refine import refine_markdown_file
+from metalscribe.core.refine import get_language_warning, refine_markdown_file
+from metalscribe.llm import (
+    AuthenticationError,
+    CLINotInstalledError,
+    LLMError,
+    SDKNotInstalledError,
+)
 from metalscribe.utils.logging import setup_logging
 
 console = Console()
@@ -19,67 +26,48 @@ logger = logging.getLogger(__name__)
     "-i",
     type=click.Path(exists=True, path_type=Path),
     required=True,
-    help="Arquivo markdown de transcrição a ser refinado",
+    help="Markdown transcription file to refine",
 )
 @click.option(
     "--output",
     "-o",
     type=click.Path(path_type=Path),
     default=None,
-    help="Arquivo markdown de saída refinado (padrão: input_refined.md)",
-)
-@click.option(
-    "--provider",
-    "-p",
-    type=click.Choice(["openai", "anthropic"], case_sensitive=False),
-    default="openai",
-    help="Provedor LLM a usar (padrão: openai)",
-)
-@click.option(
-    "--api-key",
-    type=str,
-    default=None,
-    help="Chave da API (opcional, usa variável de ambiente se não fornecido)",
+    help="Output refined markdown file (default: input_refined.md)",
 )
 @click.option(
     "--model",
     "-m",
     type=str,
     default=None,
-    help="Modelo específico (padrão depende do provedor)",
-)
-@click.option(
-    "--chunk-size",
-    type=int,
-    default=10000,
-    help="Tamanho máximo de chunk para processar (caracteres, padrão: 10000)",
+    help="Specific model (uses Claude Code default if not specified)",
 )
 @click.option(
     "--verbose",
     "-v",
     is_flag=True,
-    help="Modo verbose",
+    help="Verbose mode",
 )
 def refine(
     input: Path,
     output: Path,
-    provider: str,
-    api_key: str,
     model: str,
-    chunk_size: int,
     verbose: bool,
 ) -> None:
     """
-    Refina uma transcrição markdown usando LLM para corrigir erros de ASR.
+    Refine a markdown transcription using Claude Code.
 
-    Requer configuração de API key via variável de ambiente:
-    - OPENAI_API_KEY para provider 'openai'
-    - ANTHROPIC_API_KEY para provider 'anthropic'
+    Uses OAuth authentication from Claude Code (no API key needed).
+    If not authenticated, run: claude auth login
 
-    Exemplos:
-        metalscribe refine -i transcricao.md
-        metalscribe refine -i transcricao.md -o refinada.md --provider anthropic
-        metalscribe refine -i transcricao.md --model gpt-4o
+    The prompt language is automatically detected from the file's
+    prompt_language metadata (set during transcription with --lang).
+    Falls back to pt-BR if not specified.
+
+    \b
+    Examples:
+        metalscribe refine -i transcription.md
+        metalscribe refine -i transcription.md -o refined.md
     """
     setup_logging(verbose=verbose)
 
@@ -87,31 +75,44 @@ def refine(
 
     start_time = time.time()
 
-    # Determina arquivo de saída
+    # Determine output file
     if output is None:
         output = input.with_name(f"{input.stem}_refined.md")
 
-    console.print(f"[cyan]Refinando transcrição usando {provider}...[/cyan]")
-    console.print(f"[dim]Entrada: {input}[/dim]")
-    console.print(f"[dim]Saída: {output}[/dim]")
+    console.print("[cyan]Refining transcription...[/cyan]")
+    console.print(f"[dim]Input: {input}[/dim]")
+    console.print(f"[dim]Output: {output}[/dim]")
 
     try:
-        refine_markdown_file(
+        language_used, language_source = refine_markdown_file(
             input_path=input,
             output_path=output,
-            provider=provider,
-            api_key=api_key,
             model=model,
-            chunk_size=chunk_size,
         )
 
+        # Show language notice after processing
+        warning = get_language_warning(language_used, language_source)
+        if warning:
+            console.print()
+            console.print(
+                Panel(
+                    f"[yellow]{warning}[/yellow]",
+                    title="Language Notice",
+                    border_style="yellow",
+                )
+            )
+
         elapsed = time.time() - start_time
-        console.print(f"\n[green]✓ Refinamento concluído em {elapsed:.2f}s[/green]")
-        console.print(f"[green]Arquivo gerado: {output}[/green]")
-    except ValueError as e:
-        console.print(f"[red]Erro: {e}[/red]")
+        console.print(f"\n[green]✓ Refinement completed in {elapsed:.2f}s[/green]")
+        console.print(f"[green]Output file: {output}[/green]")
+
+    except (AuthenticationError, CLINotInstalledError, SDKNotInstalledError):
+        # Setup guide already shown by LLM provider
+        raise click.Abort()
+    except LLMError as e:
+        console.print(f"[red]LLM error: {e}[/red]")
         raise click.Abort()
     except Exception as e:
-        logger.exception("Erro durante refinamento")
-        console.print(f"[red]Erro durante refinamento: {e}[/red]")
+        logger.exception("Error during refinement")
+        console.print(f"[red]Error: {e}[/red]")
         raise click.Abort()

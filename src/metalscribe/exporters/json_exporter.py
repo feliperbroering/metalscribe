@@ -1,4 +1,4 @@
-"""Exportador JSON."""
+"""JSON Exporter."""
 
 import json
 import logging
@@ -14,12 +14,12 @@ def export_json(
     segments: List[MergedSegment], output_path: Path, metadata: Optional[dict] = None
 ) -> None:
     """
-    Exporta segmentos para JSON conforme spec seção 2.3.
+    Exports segments to JSON as per spec section 2.3.
 
     Args:
-        segments: Lista de segmentos combinados
-        output_path: Caminho do arquivo JSON de saída
-        metadata: Metadados adicionais (opcional)
+        segments: List of merged segments
+        output_path: Output JSON file path
+        metadata: Additional metadata (optional)
     """
     output = {
         "metadata": metadata or {},
@@ -37,4 +37,4 @@ def export_json(
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(output, f, indent=2, ensure_ascii=False)
 
-    logger.info(f"JSON exportado: {output_path}")
+    logger.info(f"JSON exported: {output_path}")

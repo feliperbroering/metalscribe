@@ -1,4 +1,4 @@
-"""Utilitários para execução de subprocessos."""
+"""Subprocess execution utilities."""
 
 import logging
 import os
@@ -21,24 +21,24 @@ def run_command(
     check: bool = True,
 ) -> subprocess.CompletedProcess:
     """
-    Executa um comando com timeout e logging.
+    Runs a command with timeout and logging.
 
     Args:
-        cmd: Lista de argumentos do comando
-        timeout: Timeout em segundos
-        cwd: Diretório de trabalho
-        env: Variáveis de ambiente adicionais
-        capture_output: Se True, captura stdout e stderr
-        check: Se True, levanta exceção em caso de erro
+        cmd: List of command arguments
+        timeout: Timeout in seconds
+        cwd: Working directory
+        env: Additional environment variables
+        capture_output: If True, captures stdout and stderr
+        check: If True, raises exception on error
 
     Returns:
-        CompletedProcess com resultado do comando
+        CompletedProcess with command result
 
     Raises:
-        subprocess.TimeoutExpired: Se timeout for excedido
-        subprocess.CalledProcessError: Se check=True e comando falhar
+        subprocess.TimeoutExpired: If timeout is exceeded
+        subprocess.CalledProcessError: If check=True and command fails
     """
-    logger.debug(f"Executando: {' '.join(cmd)}")
+    logger.debug(f"Running: {' '.join(cmd)}")
 
     full_env = None
     if env:
@@ -58,13 +58,13 @@ def run_command(
             logger.debug(f"stdout: {result.stdout[:500]}")
         return result
     except subprocess.TimeoutExpired:
-        logger.error(f"Comando excedeu timeout de {timeout}s: {' '.join(cmd)}")
+        logger.error(f"Command exceeded {timeout}s timeout: {' '.join(cmd)}")
         raise
     except subprocess.CalledProcessError as e:
-        logger.error(f"Comando falhou com código {e.returncode}: {' '.join(cmd)}")
+        logger.error(f"Command failed with code {e.returncode}: {' '.join(cmd)}")
         if e.stderr:
             logger.error(f"stderr: {e.stderr[:500]}")
         raise
     except FileNotFoundError:
-        logger.error(f"Comando não encontrado: {cmd[0]}")
+        logger.error(f"Command not found: {cmd[0]}")
         sys.exit(ExitCode.MISSING_DEPENDENCY)

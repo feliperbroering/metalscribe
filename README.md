@@ -148,16 +148,16 @@ Automatically generates:
 Refines markdown transcription using LLM to correct ASR errors, improve punctuation, and preserve natural speech style.
 
 ```bash
-# Refine using OpenAI (default)
-export OPENAI_API_KEY="your-key-here"
+# Refine using Anthropic (default)
+export ANTHROPIC_API_KEY="your-key-here"
 metalscribe refine --input transcript.md
 
-# Refine using Anthropic
-export ANTHROPIC_API_KEY="your-key-here"
-metalscribe refine --input transcript.md --provider anthropic
+# Refine using OpenAI
+export OPENAI_API_KEY="your-key-here"
+metalscribe refine --input transcript.md --provider openai
 
 # Specify model and output file
-metalscribe refine --input transcript.md --output refined.md --model gpt-4o
+metalscribe refine --input transcript.md --output refined.md --model claude-3-5-sonnet-20241022
 ```
 
 **Features:**
@@ -168,8 +168,61 @@ metalscribe refine --input transcript.md --output refined.md --model gpt-4o
 - Maintains speaker structure and timestamps
 
 **Requirements:**
-- API key (OpenAI or Anthropic) configured via environment variable or `--api-key`
+- API key (Anthropic or OpenAI) configured via environment variable or `--api-key`
 - `httpx` dependency installed (included automatically)
+
+### `metalscribe format-meeting`
+
+Transforms meeting transcriptions into professional structured documents using Claude Opus 4.5 with extended thinking.
+
+```bash
+# Format meeting transcription
+export ANTHROPIC_API_KEY="your-key-here"
+metalscribe format-meeting --input meeting.md
+
+# Skip confirmation prompt
+metalscribe format-meeting --input meeting.md --yes
+
+# Specify output file and model
+metalscribe format-meeting --input meeting.md --output formatted.md --model claude-opus-4-5-20250514
+```
+
+**Output includes:**
+- Executive summary
+- Participants table with inferred names and roles
+- Topics discussed with timestamps
+- Action items table
+- Full structured transcription
+
+**Features:**
+- Uses Claude Opus 4.5 with extended thinking for deep analysis
+- Shows token estimation and cost before processing
+- Requires confirmation before API call (use `--yes` to skip)
+- Produces professional, navigable meeting documents
+
+**Requirements:**
+- `ANTHROPIC_API_KEY` environment variable or `--api-key` option
+- Recommended: Use after `refine` command for best results
+
+**For long meetings (>30 min):**
+
+Install [Claude Code](https://claude.ai/code) for OAuth authentication (no API key needed):
+
+```bash
+# Install Claude Code CLI
+npm install -g @anthropic-ai/claude-code
+
+# Install Python SDK
+pip install claude-agent-sdk
+
+# Authenticate
+claude auth login
+```
+
+This is recommended for long meetings as it provides:
+- OAuth authentication (no API key management)
+- Built-in rate limiting and automatic retries
+- Better handling of extended thinking operations
 
 ## Supported Audio Formats
 

@@ -1,4 +1,4 @@
-"""Algoritmo de merge de transcrição e diarização."""
+"""Merge algorithm for transcription and diarization."""
 
 import logging
 from typing import List
@@ -15,10 +15,10 @@ def calculate_overlap_ratio(
     diarize_end: int,
 ) -> float:
     """
-    Calcula ratio de overlap entre dois segmentos.
+    Calculates overlap ratio between two segments.
 
     Returns:
-        Ratio de overlap (0.0 a 1.0)
+        Overlap ratio (0.0 to 1.0)
     """
     overlap_start = max(transcript_start, diarize_start)
     overlap_end = min(transcript_end, diarize_end)
@@ -40,23 +40,23 @@ def merge_segments(
     diarize_segments: List[DiarizeSegment],
 ) -> List[MergedSegment]:
     """
-    Combina segmentos de transcrição e diarização usando algoritmo O(N+M) two-pointer.
+    Merges transcription and diarization segments using O(N+M) two-pointer algorithm.
 
-    Para cada segmento de transcrição, encontra o segmento de diarização com maior overlap
-    e atribui o speaker correspondente.
+    For each transcription segment, finds the diarization segment with highest overlap
+    and assigns the corresponding speaker.
 
     Args:
-        transcript_segments: Segmentos de transcrição ordenados por tempo
-        diarize_segments: Segmentos de diarização ordenados por tempo
+        transcript_segments: Transcription segments sorted by time
+        diarize_segments: Diarization segments sorted by time
 
     Returns:
-        Lista de MergedSegment com texto e speaker
+        List of MergedSegment with text and speaker
     """
     if not transcript_segments:
         return []
 
     if not diarize_segments:
-        # Se não há diarização, retorna transcrição sem speaker
+        # If no diarization, return transcription without speaker
         return [
             MergedSegment(
                 start_ms=seg.start_ms,
@@ -74,21 +74,21 @@ def merge_segments(
         best_speaker = "UNKNOWN"
         best_overlap = 0.0
 
-        # Procura segmento de diarização com maior overlap
-        # Usa two-pointer: começa de onde parou (diarize_idx) e avança
+        # Find diarization segment with highest overlap
+        # Uses two-pointer: starts from where it stopped (diarize_idx) and advances
         for i in range(diarize_idx, len(diarize_segments)):
             diarize_seg = diarize_segments[i]
 
-            # Se diarize está muito antes, pode pular
+            # If diarize is too early, skip
             if diarize_seg.end_ms < transcript_seg.start_ms:
                 diarize_idx = i + 1
                 continue
 
-            # Se diarize está muito depois, pode parar
+            # If diarize is too late, stop
             if diarize_seg.start_ms > transcript_seg.end_ms:
                 break
 
-            # Calcula overlap
+            # Calculate overlap
             overlap = calculate_overlap_ratio(
                 transcript_seg.start_ms,
                 transcript_seg.end_ms,
@@ -109,5 +109,5 @@ def merge_segments(
             )
         )
 
-    logger.info(f"Merge concluído: {len(merged)} segmentos combinados")
+    logger.info(f"Merge complete: {len(merged)} combined segments")
     return merged

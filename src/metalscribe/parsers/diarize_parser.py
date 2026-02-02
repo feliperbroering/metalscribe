@@ -1,4 +1,4 @@
-"""Parser de output do pyannote.audio."""
+"""Parser for pyannote.audio output."""
 
 import json
 import logging
@@ -12,23 +12,23 @@ logger = logging.getLogger(__name__)
 
 def parse_diarize_output(json_path: Path) -> List[DiarizeSegment]:
     """
-    Parseia output JSON do pyannote.audio.
+    Parses pyannote.audio JSON output.
 
     Args:
-        json_path: Caminho do arquivo JSON de output
+        json_path: Path to JSON output file
 
     Returns:
-        Lista de DiarizeSegment normalizados
+        List of normalized DiarizeSegment
 
     Raises:
-        ValueError: Se formato for inválido
+        ValueError: If format is invalid
     """
     with open(json_path) as f:
         data = json.load(f)
 
     segments = []
 
-    # Formato pyannote: annotation.tracks[SPEAKER_XX] = [{"segment": {"start": X, "end": Y}}]
+    # pyannote format: annotation.tracks[SPEAKER_XX] = [{"segment": {"start": X, "end": Y}}]
     if "annotation" in data:
         annotation = data["annotation"]
         if "tracks" in annotation:
@@ -47,10 +47,10 @@ def parse_diarize_output(json_path: Path) -> List[DiarizeSegment]:
                             )
                         )
     else:
-        raise ValueError("Formato JSON inválido: esperado 'annotation.tracks'")
+        raise ValueError("Invalid JSON format: expected 'annotation.tracks'")
 
-    # Ordena por tempo de início
+    # Sort by start time
     segments.sort(key=lambda s: s.start_ms)
 
-    logger.info(f"Parseados {len(segments)} segmentos de diarização")
+    logger.info(f"Parsed {len(segments)} diarization segments")
     return segments

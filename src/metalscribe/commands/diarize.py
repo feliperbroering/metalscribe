@@ -1,4 +1,4 @@
-"""Comando de diarização."""
+"""Diarization command."""
 
 import logging
 from pathlib import Path
@@ -21,60 +21,60 @@ logger = logging.getLogger(__name__)
     "-i",
     type=click.Path(exists=True, path_type=Path),
     required=True,
-    help="Arquivo de áudio de entrada",
+    help="Input audio file",
 )
 @click.option(
     "--speakers",
     "-s",
     type=int,
     default=None,
-    help="Número de speakers (opcional, auto-detecta se não especificado)",
+    help="Number of speakers (optional, auto-detects if not specified)",
 )
 @click.option(
     "--output",
     "-o",
     type=click.Path(path_type=Path),
     default=None,
-    help="Arquivo JSON de saída (padrão: input_diarize.json)",
+    help="Output JSON file (default: input_diarize.json)",
 )
 @click.option(
     "--verbose",
     "-v",
     is_flag=True,
-    help="Modo verbose",
+    help="Verbose mode",
 )
 def diarize(input: Path, speakers: int, output: Path, verbose: bool) -> None:
-    """Identifica locutores usando pyannote.audio."""
+    """Identifies speakers using pyannote.audio."""
     setup_logging(verbose=verbose)
 
     import time
 
     start_time = time.time()
 
-    # Converte áudio
+    # Convert audio
     wav_path = input.with_suffix(".wav")
     convert_to_wav_16k(input, wav_path)
     conversion_time = time.time() - start_time
-    log_timing("Conversão de áudio", conversion_time)
+    log_timing("Audio conversion", conversion_time)
 
-    # Diariza
+    # Diarize
     diarize_start = time.time()
     segments = run_diarization(wav_path, num_speakers=speakers)
     diarize_time = time.time() - diarize_start
-    log_timing("Diarização", diarize_time)
+    log_timing("Diarization", diarize_time)
 
-    # Exporta JSON
+    # Export JSON
     if output is None:
         output = input.with_suffix("").with_suffix("_diarize.json")
 
-    # Converte para formato exportável (precisa adaptar)
+    # Convert to exportable format
     from metalscribe.core.models import MergedSegment
 
     merged_segments = [
         MergedSegment(
             start_ms=seg.start_ms,
             end_ms=seg.end_ms,
-            text="",  # Diarização não tem texto
+            text="",  # Diarization has no text
             speaker=seg.speaker,
         )
         for seg in segments
@@ -85,4 +85,4 @@ def diarize(input: Path, speakers: int, output: Path, verbose: bool) -> None:
     total_time = time.time() - start_time
     log_timing("Total", total_time)
 
-    console.print(f"[green]✓ Diarização concluída: {output}[/green]")
+    console.print(f"[green]✓ Diarization complete: {output}[/green]")

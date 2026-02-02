@@ -1,4 +1,4 @@
-"""Checks de dependências e sistema."""
+"""Dependency and system checks."""
 
 import logging
 import os
@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
-from metalscribe.config import get_brew_prefix
+from metalscribe.config import get_brew_prefix, get_pyannote_venv_path
 from metalscribe.utils.platform import is_macos
 from metalscribe.utils.subprocess import run_command
 
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class CheckResult:
-    """Resultado de um check."""
+    """Result of a check."""
 
     name: str
     status: bool
@@ -25,19 +25,19 @@ class CheckResult:
 
 
 def check_platform() -> CheckResult:
-    """Verifica se está rodando no macOS."""
+    """Checks if running on macOS."""
     if is_macos():
         return CheckResult("macOS", True, f"macOS {platform.mac_ver()[0]}")
     return CheckResult(
         "macOS",
         False,
-        f"Sistema operacional: {platform.system()}",
-        "metalscribe requer macOS para aceleração GPU Metal/MPS",
+        f"Operating system: {platform.system()}",
+        "metalscribe requires macOS for Metal/MPS GPU acceleration",
     )
 
 
 def check_homebrew() -> CheckResult:
-    """Verifica se Homebrew está instalado."""
+    """Checks if Homebrew is installed."""
     try:
         result = run_command(["brew", "--version"], check=False)
         if result.returncode == 0:
@@ -46,20 +46,20 @@ def check_homebrew() -> CheckResult:
         return CheckResult(
             "Homebrew",
             False,
-            "Homebrew não encontrado",
-            'Instale via: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"',
+            "Homebrew not found",
+            'Install via: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"',
         )
     except FileNotFoundError:
         return CheckResult(
             "Homebrew",
             False,
-            "Homebrew não encontrado",
-            'Instale via: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"',
+            "Homebrew not found",
+            'Install via: /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"',
         )
 
 
 def check_python() -> CheckResult:
-    """Verifica versão do Python."""
+    """Checks Python version."""
     version = platform.python_version()
     major, minor = map(int, version.split(".")[:2])
     if major == 3 and minor >= 11:
@@ -68,40 +68,40 @@ def check_python() -> CheckResult:
         "Python",
         False,
         f"Python {version}",
-        "Requer Python 3.11 ou superior",
+        "Requires Python 3.11 or higher",
     )
 
 
 def check_ffmpeg() -> CheckResult:
-    """Verifica se ffmpeg está instalado."""
+    """Checks if ffmpeg is installed."""
     try:
         result = run_command(["ffmpeg", "-version"], check=False)
         if result.returncode == 0:
             version_line = result.stdout.split("\n")[0]
             return CheckResult("ffmpeg", True, version_line)
         return CheckResult(
-            "ffmpeg", False, "ffmpeg não encontrado", "Instale via: brew install ffmpeg"
+            "ffmpeg", False, "ffmpeg not found", "Install via: brew install ffmpeg"
         )
     except FileNotFoundError:
         return CheckResult(
-            "ffmpeg", False, "ffmpeg não encontrado", "Instale via: brew install ffmpeg"
+            "ffmpeg", False, "ffmpeg not found", "Install via: brew install ffmpeg"
         )
 
 
 def check_whisper_installation() -> CheckResult:
-    """Verifica se whisper.cpp está instalado."""
+    """Checks if whisper.cpp is installed."""
     from metalscribe.config import get_cache_dir
 
     brew_prefix = get_brew_prefix()
     cache_dir = get_cache_dir()
 
     whisper_paths = [
-        # Prioridade 1: compilado localmente no cache
+        # Priority 1: locally compiled in cache
         cache_dir / "whisper.cpp" / "build" / "bin" / "whisper-cli",
-        # Prioridade 2: Homebrew
+        # Priority 2: Homebrew
         brew_prefix / "bin" / "whisper",
         brew_prefix / "bin" / "whisper-cli",
-        # Prioridade 3: paths globais
+        # Priority 3: global paths
         Path("/usr/local/bin/whisper"),
         Path("/usr/local/bin/whisper-cli"),
     ]
@@ -111,27 +111,27 @@ def check_whisper_installation() -> CheckResult:
             try:
                 result = run_command([str(whisper_path), "--help"], check=False)
                 if result.returncode == 0:
-                    return CheckResult("whisper.cpp", True, f"Instalado em {whisper_path}")
+                    return CheckResult("whisper.cpp", True, f"Installed at {whisper_path}")
             except Exception:
                 pass
 
     return CheckResult(
         "whisper.cpp",
         False,
-        "whisper.cpp não encontrado",
-        "Execute: metalscribe doctor --setup",
+        "whisper.cpp not found",
+        "Run: metalscribe doctor --setup",
     )
 
 
 def check_pyannote_installation() -> CheckResult:
-    """Verifica se pyannote.audio está instalado."""
-    venv_path = Path("pyannote_venv")
+    """Checks if pyannote.audio is installed."""
+    venv_path = get_pyannote_venv_path()
     if not venv_path.exists():
         return CheckResult(
             "pyannote.audio",
             False,
-            "Venv não encontrado",
-            "Execute: metalscribe doctor --setup",
+            "Venv not found",
+            "Run: metalscribe doctor --setup",
         )
 
     python_path = venv_path / "bin" / "python"
@@ -139,8 +139,8 @@ def check_pyannote_installation() -> CheckResult:
         return CheckResult(
             "pyannote.audio",
             False,
-            "Python do venv não encontrado",
-            "Execute: metalscribe doctor --setup",
+            "Venv Python not found",
+            "Run: metalscribe doctor --setup",
         )
 
     try:
@@ -150,46 +150,46 @@ def check_pyannote_installation() -> CheckResult:
         )
         if result.returncode == 0:
             version = result.stdout.strip()
-            return CheckResult("pyannote.audio", True, f"Versão {version}")
+            return CheckResult("pyannote.audio", True, f"Version {version}")
     except Exception as e:
-        logger.debug(f"Erro ao verificar pyannote: {e}")
+        logger.debug(f"Error checking pyannote: {e}")
 
     return CheckResult(
         "pyannote.audio",
         False,
-        "pyannote.audio não está instalado corretamente",
-        "Execute: metalscribe doctor --setup",
+        "pyannote.audio is not installed correctly",
+        "Run: metalscribe doctor --setup",
     )
 
 
 def check_metal_available() -> CheckResult:
-    """Verifica se Metal está disponível."""
+    """Checks if Metal is available."""
     if not is_macos():
-        return CheckResult("Metal GPU", False, "Metal só está disponível no macOS")
+        return CheckResult("Metal GPU", False, "Metal is only available on macOS")
 
     try:
-        # Verifica se Metal está disponível via system_profiler
+        # Check if Metal is available via system_profiler
         result = run_command(
             ["system_profiler", "SPDisplaysDataType"],
             check=False,
             capture_output=True,
         )
         if result.returncode == 0 and "Metal" in result.stdout:
-            return CheckResult("Metal GPU", True, "Metal disponível")
+            return CheckResult("Metal GPU", True, "Metal available")
     except Exception:
         pass
 
-    # Assume disponível se estiver no macOS moderno
-    return CheckResult("Metal GPU", True, "Metal disponível (assumido)")
+    # Assume available if on modern macOS
+    return CheckResult("Metal GPU", True, "Metal available (assumed)")
 
 
 def check_mps_available() -> CheckResult:
-    """Verifica se MPS (Metal Performance Shaders) está disponível."""
+    """Checks if MPS (Metal Performance Shaders) is available."""
     if not is_macos():
-        return CheckResult("MPS GPU", False, "MPS só está disponível no macOS")
+        return CheckResult("MPS GPU", False, "MPS is only available on macOS")
 
-    # Verifica no venv do pyannote (onde realmente será usado)
-    venv_path = Path("pyannote_venv")
+    # Check in pyannote venv (where it will actually be used)
+    venv_path = get_pyannote_venv_path()
     python_path = venv_path / "bin" / "python"
     if python_path.exists():
         try:
@@ -202,38 +202,112 @@ def check_mps_available() -> CheckResult:
                 check=False,
             )
             if result.returncode == 0 and "True" in result.stdout:
-                return CheckResult("MPS GPU", True, "MPS disponível no venv pyannote")
+                return CheckResult("MPS GPU", True, "MPS available in pyannote venv")
         except Exception:
             pass
 
-    # Se não há venv, verifica se pode ser instalado (macOS moderno tem MPS)
-    # Mas marca como não verificado até o setup
+    # If no venv, check if can be installed (modern macOS has MPS)
+    # But mark as not verified until setup
     return CheckResult(
         "MPS GPU",
         False,
-        "MPS não verificado (venv pyannote não configurado)",
-        "Será verificado durante setup do pyannote",
+        "MPS not verified (pyannote venv not configured)",
+        "Will be verified during pyannote setup",
     )
 
 
 def check_hf_token() -> CheckResult:
-    """Verifica se token do HuggingFace está configurado."""
+    """Checks if HuggingFace token is configured."""
     token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_TOKEN")
     if token:
-        return CheckResult("HF Token", True, "Token configurado")
+        return CheckResult("HF Token", True, "Token configured")
     return CheckResult(
         "HF Token",
         False,
-        "Token não encontrado em HF_TOKEN ou HUGGINGFACE_TOKEN",
-        "Configure: export HF_TOKEN=seu_token",
+        "Token not found in HF_TOKEN or HUGGINGFACE_TOKEN",
+        "Configure: export HF_TOKEN=your_token",
     )
 
 
+def check_claude_code_cli() -> CheckResult:
+    """Checks if Claude Code CLI is installed."""
+    import shutil
+
+    claude_path = shutil.which("claude")
+    if claude_path:
+        try:
+            result = run_command(["claude", "--version"], check=False)
+            if result.returncode == 0:
+                version = result.stdout.strip()
+                return CheckResult("Claude Code CLI", True, f"Installed ({version})")
+        except Exception:
+            pass
+        return CheckResult("Claude Code CLI", True, f"Installed at {claude_path}")
+
+    return CheckResult(
+        "Claude Code CLI",
+        False,
+        "Claude Code CLI not found",
+        "Run: metalscribe doctor --setup (or: npm install -g @anthropic-ai/claude-code)",
+    )
+
+
+def check_claude_code_sdk() -> CheckResult:
+    """Checks if Claude Agent SDK is installed."""
+    try:
+        import claude_agent_sdk  # noqa: F401
+
+        # Try to get version if available
+        try:
+            version = claude_agent_sdk.__version__
+            return CheckResult("Claude Agent SDK", True, f"Version {version}")
+        except AttributeError:
+            return CheckResult("Claude Agent SDK", True, "Installed")
+    except ImportError:
+        return CheckResult(
+            "Claude Agent SDK",
+            False,
+            "claude-agent-sdk not found",
+            "Run: metalscribe doctor --setup (or: pip install claude-agent-sdk)",
+        )
+
+
+def check_claude_code_auth() -> CheckResult:
+    """Checks if authenticated with Claude Code."""
+    # First check if CLI is installed
+    cli_check = check_claude_code_cli()
+    if not cli_check.status:
+        return CheckResult(
+            "Claude Code Auth",
+            False,
+            "CLI not installed",
+            "Run: metalscribe doctor --setup",
+        )
+
+    try:
+        result = run_command(["claude", "auth", "status"], check=False)
+        if result.returncode == 0:
+            return CheckResult("Claude Code Auth", True, "Authenticated")
+        return CheckResult(
+            "Claude Code Auth",
+            False,
+            "Not authenticated",
+            "Run: claude auth login",
+        )
+    except Exception:
+        return CheckResult(
+            "Claude Code Auth",
+            False,
+            "Could not check authentication",
+            "Run: claude auth login",
+        )
+
+
 def validate_hf_token() -> Optional[str]:
-    """Valida e retorna token do HuggingFace."""
+    """Validates and returns HuggingFace token."""
     token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_TOKEN")
     if not token:
         raise ValueError(
-            "Token do HuggingFace não encontrado. Configure HF_TOKEN ou HUGGINGFACE_TOKEN"
+            "HuggingFace token not found. Set HF_TOKEN or HUGGINGFACE_TOKEN"
         )
     return token

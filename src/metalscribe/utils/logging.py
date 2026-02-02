@@ -1,4 +1,4 @@
-"""Utilitários de logging."""
+"""Logging utilities."""
 
 import logging
 from pathlib import Path
@@ -11,7 +11,7 @@ console = Console()
 
 
 def setup_logging(verbose: bool = False, log_file: Optional[Path] = None) -> None:
-    """Configura logging com Rich."""
+    """Configures logging with Rich."""
     level = logging.DEBUG if verbose else logging.INFO
 
     handlers = [RichHandler(console=console, rich_tracebacks=True)]
@@ -29,7 +29,7 @@ def setup_logging(verbose: bool = False, log_file: Optional[Path] = None) -> Non
 
 
 def log_timing(stage: str, duration: float, rtf: Optional[float] = None) -> None:
-    """Loga timing de uma etapa."""
+    """Logs timing for a step."""
     msg = f"[green]✓[/green] {stage}: {duration:.2f}s"
     if rtf is not None:
         msg += f" (RTF: {rtf:.3f})"

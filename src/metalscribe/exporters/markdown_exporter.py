@@ -1,4 +1,4 @@
-"""Exportador Markdown."""
+"""Markdown Exporter."""
 
 import logging
 from pathlib import Path
@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 def format_timestamp_md(ms: int) -> str:
-    """Formata timestamp em formato legível (HH:MM:SS)."""
+    """Formats timestamp in readable format (HH:MM:SS)."""
     total_seconds = ms // 1000
     hours = total_seconds // 3600
     minutes = (total_seconds % 3600) // 60
@@ -28,40 +28,40 @@ def export_markdown(
     metadata: Optional[dict] = None,
 ) -> None:
     """
-    Exporta segmentos para Markdown legível.
+    Exports segments to readable Markdown.
 
     Args:
-        segments: Lista de segmentos combinados
-        output_path: Caminho do arquivo Markdown de saída
-        title: Título do documento (opcional)
-        metadata: Metadados adicionais (opcional)
+        segments: List of merged segments
+        output_path: Output Markdown file path
+        title: Document title (optional)
+        metadata: Additional metadata (optional)
     """
     with open(output_path, "w", encoding="utf-8") as f:
         # Header
         if title:
             f.write(f"# {title}\n\n")
         else:
-            f.write("# Transcrição\n\n")
+            f.write("# Transcription\n\n")
 
-        # Metadados
+        # Metadata
         if metadata:
-            f.write("## Metadados\n\n")
+            f.write("## Metadata\n\n")
             for key, value in metadata.items():
                 f.write(f"- **{key}**: {value}\n")
             f.write("\n")
 
-        # Duração total
+        # Total duration
         if segments:
             total_duration = segments[-1].end_ms - segments[0].start_ms
             duration_str = format_timestamp_md(total_duration)
-            f.write(f"**Duração total**: {duration_str}\n\n")
+            f.write(f"**Total duration**: {duration_str}\n\n")
 
         f.write("---\n\n")
 
-        # Segmentos
+        # Segments
         current_speaker = None
         for seg in segments:
-            # Agrupa por speaker
+            # Group by speaker
             if seg.speaker != current_speaker:
                 if current_speaker is not None:
                     f.write("\n")
@@ -71,4 +71,4 @@ def export_markdown(
             timestamp = format_timestamp_md(seg.start_ms)
             f.write(f"**[{timestamp}]** {seg.text}\n\n")
 
-    logger.info(f"Markdown exportado: {output_path}")
+    logger.info(f"Markdown exported: {output_path}")
