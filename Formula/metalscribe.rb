@@ -11,8 +11,16 @@ class Metalscribe < Formula
 
   depends_on "python@3.11"
   depends_on "ffmpeg"
-  # Note: whisper.cpp is compiled from source during installation
-  # or users can install via: brew tap ggerganov/whisper.cpp && brew install whisper.cpp
+  
+  # Note on whisper.cpp:
+  # whisper.cpp is a heavy C++ dependency that must be compiled with Metal support.
+  # Rather than slow down every Homebrew install, metalscribe's doctor command
+  # handles whisper.cpp setup intelligently:
+  #   - Checks if already installed
+  #   - Uses Homebrew cache for compilation
+  #   - Only compiles once, not every time
+  #
+  # Alternative: pre-build whisper.cpp and host binary, but adds maintenance burden.
 
   def install
     # Create isolated virtual environment

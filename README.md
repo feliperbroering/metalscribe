@@ -27,12 +27,32 @@
 # Add tap
 brew tap feliperbroering/metalscribe https://github.com/feliperbroering/metalscribe.git
 
-# Install
+# Install (installs Python 3.11, ffmpeg, PyTorch, pyannote.audio)
 brew install metalscribe
+
+# Setup remaining dependencies (whisper.cpp, models)
+metalscribe doctor --setup
 
 # Verify
 metalscribe --version
 ```
+
+**What gets installed via `brew install`:**
+- ✅ Python 3.11
+- ✅ ffmpeg
+- ✅ PyTorch (with Metal GPU support)
+- ✅ pyannote.audio
+- ✅ Click, Rich, Pydantic, httpx
+
+**What `metalscribe doctor --setup` handles:**
+- ✅ whisper.cpp (compiled with Metal GPU support)
+- ✅ Whisper models (tiny, base, small, medium, large-v3)
+- ✅ pyannote models (cached in `~/.cache/huggingface/`)
+
+**Why two steps?**
+- `brew install` is fast (~5-15 min) because it uses cached binaries
+- Compiling whisper.cpp locally would take 30+ minutes, so we defer it
+- Models download on-demand, configured per user (HuggingFace token)
 
 ### From Source
 
