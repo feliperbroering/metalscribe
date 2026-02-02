@@ -31,7 +31,7 @@ class Metalscribe < Formula
     system venv / "bin/pip", "install", "--upgrade", "pip", "setuptools", "wheel"
     
     # Install metalscribe and dependencies in venv
-    system venv / "bin/pip", "install", "-e", "."
+    system venv / "bin/pip", "install", "."
     
     # Create executable wrapper in bin
     bin.write_exec_script venv / "bin" / "metalscribe"
@@ -77,8 +77,8 @@ class Metalscribe < Formula
   end
 
   test do
-    # Test version output
-    assert_match(/0\.1\.0/, shell_output("#{bin}/metalscribe --version"))
+    # Test version output (dynamic pattern to work with any version)
+    assert_match(/\d+\.\d+\.\d+/, shell_output("#{bin}/metalscribe --version"))
     
     # Test help text
     assert_match(/usage:/, shell_output("#{bin}/metalscribe --help"))
