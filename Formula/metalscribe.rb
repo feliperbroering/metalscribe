@@ -11,6 +11,8 @@ class Metalscribe < Formula
 
   depends_on "python@3.11"
   depends_on "ffmpeg"
+  # Note: whisper.cpp is compiled from source during installation
+  # or users can install via: brew tap ggerganov/whisper.cpp && brew install whisper.cpp
 
   def install
     # Create isolated virtual environment
@@ -30,6 +32,16 @@ class Metalscribe < Formula
   def post_install
     # Verify installation completed
     system "#{bin}/metalscribe", "--version"
+    
+    # Inform user about next steps
+    puts "\n" + "="*60
+    puts "✓ metalscribe installed successfully!"
+    puts "="*60
+    puts "\nNext step: Setup dependencies (whisper.cpp models, pyannote cache)"
+    puts "\n  metalscribe doctor --setup"
+    puts "\nFor more info:"
+    puts "  metalscribe --help"
+    puts "="*60 + "\n"
   end
 
   test do
