@@ -21,9 +21,24 @@
 
 ## Installation
 
+### Via Homebrew (Recommended)
+
+```bash
+# Add tap
+brew tap feliperbroering/metalscribe https://github.com/feliperbroering/metalscribe.git
+
+# Install
+brew install metalscribe
+
+# Verify
+metalscribe --version
+```
+
+### From Source
+
 ```bash
 # Clone the repository
-git clone <repo-url>
+git clone https://github.com/feliperbroering/metalscribe
 cd metalscribe
 
 # Install the project

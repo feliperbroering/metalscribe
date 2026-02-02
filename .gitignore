@@ -57,7 +57,9 @@ htmlcov/
 *.md
 !README.md
 !CLAUDE.md
+!RELEASES.md
 !docs/**/*.md
+!scripts/**/*.md
 timings.log
 
 # Cache
@@ -74,6 +76,10 @@ pyannote_venv/
 
 # Test output
 test_output/
+
+# Homebrew build artifacts
+.homebrew/
+Homebrew.cache/
 
 # macOS
 .DS_Store

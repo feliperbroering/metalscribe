@@ -1,0 +1,83 @@
+name: Homebrew Formula Test
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "0 2 * * 0"  # Weekly on Sunday at 2 AM UTC
+
+jobs:
+  test-formula:
+    strategy:
+      matrix:
+        macos-version: [macos-13, macos-14, macos-15]
+    
+    runs-on: ${{ matrix.macos-version }}
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Homebrew
+        run: |
+          brew --version
+          brew update-reset
+      
+      - name: Install dependencies
+        run: |
+          brew install python@3.11 ffmpeg
+      
+      - name: Validate formula syntax
+        run: |
+          brew audit --strict Formula/metalscribe.rb
+      
+      - name: Test formula installation
+        run: |
+          brew install --build-from-source ./Formula/metalscribe.rb
+      
+      - name: Verify installation
+        run: |
+          metalscribe --version
+          metalscribe --help
+      
+      - name: Test doctor check
+        run: |
+          metalscribe doctor --check-only
+
+  test-suite:
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      
+      - name: Install system dependencies
+        run: |
+          brew install ffmpeg
+      
+      - name: Install metalscribe (dev mode)
+        run: |
+          pip install -e .
+      
+      - name: Run tests
+        run: |
+          pytest tests/ -v
+      
+      - name: Run linting
+        run: |
+          pip install ruff
+          ruff check src/
+      
+      - name: Verify CLI
+        run: |
+          metalscribe --version
+          metalscribe --help
+          metalscribe doctor --check-only
