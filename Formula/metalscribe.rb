@@ -38,18 +38,42 @@ class Metalscribe < Formula
   end
 
   def post_install
-    # Verify installation completed
+    # Verify CLI is accessible
     system "#{bin}/metalscribe", "--version"
     
-    # Inform user about next steps
-    puts "\n" + "="*60
+    puts "\n" + "="*75
     puts "✓ metalscribe installed successfully!"
-    puts "="*60
-    puts "\nNext step: Setup dependencies (whisper.cpp models, pyannote cache)"
-    puts "\n  metalscribe doctor --setup"
-    puts "\nFor more info:"
+    puts "="*75
+    puts "\nConfiguring dependencies (whisper.cpp, models, etc.)..."
+    puts "This will take 15-40 minutes on first run (internet connection required)"
+    puts ""
+    
+    # Run doctor --setup to:
+    # 1. Compile whisper.cpp with Metal GPU support
+    # 2. Download Whisper models
+    # 3. Setup HuggingFace token for diarization
+    # 4. Cache pyannote models
+    system "#{bin}/metalscribe", "doctor", "--setup"
+    
+    puts "\n" + "="*75
+    puts "✓ Setup complete! metalscribe is ready to use."
+    puts "="*75
+    puts "\nQuick start examples:"
+    puts ""
+    puts "  # Transcribe audio file"
+    puts "  metalscribe transcribe --input audio.m4a --model medium --lang en"
+    puts ""
+    puts "  # Full pipeline (transcription + speaker diarization)"
+    puts "  metalscribe run --input audio.m4a --model medium --speakers 2"
+    puts ""
+    puts "  # Verify dependencies"
+    puts "  metalscribe doctor --check-only"
+    puts ""
+    puts "  # Get help"
     puts "  metalscribe --help"
-    puts "="*60 + "\n"
+    puts ""
+    puts "Documentation: https://github.com/feliperbroering/metalscribe"
+    puts "="*75 + "\n"
   end
 
   test do

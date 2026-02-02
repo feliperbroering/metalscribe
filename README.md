@@ -27,32 +27,38 @@
 # Add tap
 brew tap feliperbroering/metalscribe https://github.com/feliperbroering/metalscribe.git
 
-# Install (installs Python 3.11, ffmpeg, PyTorch, pyannote.audio)
+# Install (everything is automatic!)
 brew install metalscribe
+# This will:
+# 1. Install Python 3.11, ffmpeg, PyTorch, pyannote.audio
+# 2. Compile whisper.cpp with Metal GPU support
+# 3. Download models (~2-5 GB depending on choices)
+# Total time: 15-40 minutes (first time only)
 
-# Setup remaining dependencies (whisper.cpp, models)
-metalscribe doctor --setup
-
-# Verify
+# Verify installation
 metalscribe --version
 ```
 
-**What gets installed via `brew install`:**
+**What gets installed:**
 - ✅ Python 3.11
 - ✅ ffmpeg
 - ✅ PyTorch (with Metal GPU support)
 - ✅ pyannote.audio
-- ✅ Click, Rich, Pydantic, httpx
-
-**What `metalscribe doctor --setup` handles:**
-- ✅ whisper.cpp (compiled with Metal GPU support)
-- ✅ Whisper models (tiny, base, small, medium, large-v3)
+- ✅ whisper.cpp (compiled with Metal)
+- ✅ Whisper models (you choose during install)
 - ✅ pyannote models (cached in `~/.cache/huggingface/`)
 
-**Why two steps?**
-- `brew install` is fast (~5-15 min) because it uses cached binaries
-- Compiling whisper.cpp locally would take 30+ minutes, so we defer it
-- Models download on-demand, configured per user (HuggingFace token)
+**First run is slower (~15-40 min) because:**
+- PyTorch binary download (~200MB)
+- whisper.cpp compilation with Metal GPU support (~10 min)
+- Whisper model download (500MB-1.5GB depending on size)
+- pyannote cache setup
+
+**Subsequent runs are instant** — everything is cached locally.
+
+**Need HuggingFace token for diarization?**
+- Free account at https://huggingface.co
+- Token during install, or set `export HF_TOKEN="..."`
 
 ### From Source
 

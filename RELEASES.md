@@ -94,6 +94,42 @@ After 3-6 months with stable releases:
 
 ## Troubleshooting
 
+### Installation hangs or takes a long time
+
+This is normal on first installation! metalscribe is:
+1. Downloading PyTorch (~200MB)
+2. Compiling whisper.cpp with Metal GPU support (~10 min)
+3. Downloading language models (~500MB-1.5GB)
+
+**Total time: 15-40 minutes** depending on internet speed and disk space.
+
+To monitor progress in another terminal:
+```bash
+ps aux | grep -E "make|pip|curl|wget"
+df -h  # Check disk space
+```
+
+### Installation fails during doctor --setup
+
+If `doctor --setup` fails during Homebrew installation:
+
+```bash
+# Check what went wrong
+metalscribe doctor --check-only
+
+# Try setup again manually
+metalscribe doctor --setup
+
+# If it keeps failing, debug:
+brew install -s -v metalscribe  # Verbose output
+```
+
+Common issues:
+- **Disk space:** whisper.cpp + models need 5-10GB
+- **Network:** Models download from HuggingFace, can be slow/unstable
+- **XCode:** Some parts need build tools: `xcode-select --install`
+- **HuggingFace token:** Required for diarization (free account)
+
 ### Formula test fails locally
 
 ```bash
