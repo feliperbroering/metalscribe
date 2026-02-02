@@ -11,6 +11,13 @@ if [ -z "$1" ]; then
 fi
 
 VERSION=$1
+
+# Validate version format (vX.Y.Z)
+if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    echo "❌ Invalid version format: $VERSION"
+    echo "   Version must be in format vX.Y.Z (e.g., v0.1.0, v1.2.3)"
+    exit 1
+fi
 REPO_OWNER="feliperbroering"
 REPO_NAME="metalscribe"
 REPO="$REPO_OWNER/$REPO_NAME"
@@ -26,12 +33,14 @@ echo ""
 
 # Step 1: Verify version tag exists
 echo "Checking if release exists..."
-if ! curl -sL -o /dev/null -w "%{http_code}" "$TARBALL_URL" | grep -q "200"; then
-    echo "❌ Release $VERSION not found"
+HTTP_STATUS=$(curl -sL -o /dev/null -w "%{http_code}" "$TARBALL_URL" 2>/dev/null)
+if [ "$HTTP_STATUS" != "200" ]; then
+    echo "❌ Release $VERSION not found (HTTP $HTTP_STATUS)"
     echo "   Did you create the git tag and GitHub release?"
+    echo "   URL: $TARBALL_URL"
     exit 1
 fi
-echo "✓ Release found"
+echo "✓ Release found (HTTP $HTTP_STATUS)"
 echo ""
 
 # Step 2: Calculate SHA256

@@ -1,0 +1,18 @@
+# CODEOWNERS - Defines code ownership for pull request reviews
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner for everything
+* @feliperbroering
+
+# Homebrew distribution (require explicit review)
+/Formula/ @feliperbroering
+/scripts/homebrew/ @feliperbroering
+
+# CI/CD workflows
+/.github/workflows/ @feliperbroering
+
+# Core business logic
+/src/metalscribe/core/ @feliperbroering
+
+# Release documentation
+/RELEASES.md @feliperbroering

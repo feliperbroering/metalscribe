@@ -8,6 +8,18 @@ on:
     branches: [main]
   schedule:
     - cron: "0 2 * * 0"  # Weekly on Sunday at 2 AM UTC
+  workflow_dispatch:
+    inputs:
+      macos_version:
+        description: 'macOS version to test (leave empty for all)'
+        required: false
+        default: ''
+        type: choice
+        options:
+          - ''
+          - 'macos-13'
+          - 'macos-14'
+          - 'macos-15'
 
 jobs:
   test-formula:
@@ -26,13 +38,30 @@ jobs:
           brew --version
           brew update-reset
       
+      - name: Cache Homebrew packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/Homebrew
+            /opt/homebrew/Cellar
+            /usr/local/Cellar
+          key: ${{ runner.os }}-${{ matrix.macos-version }}-brew-${{ hashFiles('Formula/metalscribe.rb') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.macos-version }}-brew-
+      
       - name: Install dependencies
         run: |
           brew install python@3.11 ffmpeg
       
       - name: Validate formula syntax
         run: |
-          brew audit --strict Formula/metalscribe.rb
+          # Skip audit if SHA256 placeholder is present (pre-release)
+          if grep -q "HOMEBREW_SHA256_PLACEHOLDER" Formula/metalscribe.rb; then
+            echo "⚠️ Skipping brew audit: SHA256 placeholder detected (pre-release)"
+            echo "   Run 'scripts/homebrew/release.sh vX.Y.Z' after creating GitHub release"
+          else
+            brew audit --strict Formula/metalscribe.rb
+          fi
       
       - name: Test formula installation
         run: |
