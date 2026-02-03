@@ -1,21 +1,21 @@
 #!/bin/bash
-# Script para instalar todas as dependências
+# Script to install all dependencies
 
 set -e
 
-echo "Instalando todas as dependências do metalscribe..."
+echo "Installing all metalscribe dependencies..."
 echo ""
 
-# Instala whisper.cpp
-echo "=== Instalando whisper.cpp ==="
+# Install whisper.cpp
+echo "=== Installing whisper.cpp ==="
 bash "$(dirname "$0")/install_whisper_gpu.sh"
 echo ""
 
-# Instala pyannote.audio
-echo "=== Instalando pyannote.audio ==="
+# Install pyannote.audio
+echo "=== Installing pyannote.audio ==="
 bash "$(dirname "$0")/install_diarization_gpu.sh"
 echo ""
 
-echo "✓ Todas as dependências instaladas!"
+echo "✓ All dependencies installed!"
 echo ""
-echo "Execute 'metalscribe doctor --check-only' para verificar"
+echo "Run 'metalscribe doctor --check-only' to verify"

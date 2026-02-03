@@ -4,6 +4,7 @@ import click
 
 from metalscribe import __version__
 from metalscribe.commands.combine import combine
+from metalscribe.commands.context import context
 from metalscribe.commands.diarize import diarize
 from metalscribe.commands.doctor import doctor
 from metalscribe.commands.format_meeting import format_meeting
@@ -22,6 +23,7 @@ def main() -> None:
 
 # Register commands
 main.add_command(doctor)
+main.add_command(context)
 main.add_command(transcribe)
 main.add_command(diarize)
 main.add_command(combine)

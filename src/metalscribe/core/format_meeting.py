@@ -1,39 +1,15 @@
 """Module for formatting meeting transcriptions using LLM."""
 
 import logging
-import re
 from pathlib import Path
 from typing import Optional
 
-from metalscribe.config import (
-    DEFAULT_PROMPT_LANGUAGE,
-    get_prompt_path,
-)
+from metalscribe.config import DEFAULT_PROMPT_LANGUAGE, DEFAULT_FORMAT_MEETING_MODEL
+from metalscribe.core.prompt_loader import load_prompt
 from metalscribe.llm import LLMProvider
+from metalscribe.utils.metadata import extract_language_from_metadata
 
 logger = logging.getLogger(__name__)
-
-
-def extract_language_from_metadata(content: str) -> Optional[str]:
-    """
-    Extract the prompt_language from markdown file metadata.
-
-    Args:
-        content: The markdown file content.
-
-    Returns:
-        The prompt_language value if found, None otherwise.
-    """
-    # Look for prompt_language in metadata section (before ---)
-    lines = content.split("\n")
-    for line in lines:
-        if line.strip() == "---":
-            break
-        # Match: - **prompt_language**: pt-BR
-        match = re.match(r"[-*\s]*\*?\*?prompt_language\*?\*?:\s*(.+)", line, re.IGNORECASE)
-        if match:
-            return match.group(1).strip()
-    return None
 
 # Defaults for token estimation
 DEFAULT_CHARS_PER_TOKEN = 4
@@ -45,7 +21,7 @@ PRICING = {
 }
 
 
-def load_format_meeting_prompt(language: Optional[str] = None) -> str:
+def load_format_meeting_prompt(language: Optional[str] = None, domain_context: str = "") -> str:
     """
     Load the format-meeting prompt from the markdown file.
 
@@ -54,24 +30,12 @@ def load_format_meeting_prompt(language: Optional[str] = None) -> str:
 
     Args:
         language: Language code (e.g., "pt-BR"). Uses default if None.
+        domain_context: Optional domain context to inject.
 
     Returns:
         The prompt content as string.
     """
-    prompt_path = get_prompt_path("format-meeting", language)
-    content = prompt_path.read_text(encoding="utf-8")
-
-    # Remove only the main title
-    # but keep the entire markdown structure
-    lines = content.split("\n")
-    # Skip the first line if it's a title
-    if lines and lines[0].startswith("# "):
-        lines = lines[1:]
-    # Remove initial empty line if present
-    if lines and not lines[0].strip():
-        lines = lines[1:]
-
-    return "\n".join(lines)
+    return load_prompt("format-meeting", language=language, domain_context=domain_context)
 
 
 def get_language_warning(language: str, source: str = "default") -> Optional[str]:
@@ -132,6 +96,7 @@ def format_meeting_text(
     text: str,
     model: Optional[str] = None,
     language: Optional[str] = None,
+    domain_context: str = "",
 ) -> str:
     """
     Format a meeting transcription text using LLM.
@@ -140,16 +105,19 @@ def format_meeting_text(
         text: Text to be formatted
         model: Specific model (optional)
         language: Language code for prompt (optional)
+        domain_context: Optional domain context to inject.
 
     Returns:
         Formatted text
     """
-    prompt = load_format_meeting_prompt(language)
+    prompt = load_format_meeting_prompt(language, domain_context=domain_context)
 
     # Build full message with prompt and text
     full_text = f"{prompt}\n\n---\n\nTRANSCRIPTION TO FORMAT:\n\n{text}"
 
-    provider = LLMProvider(model=model)
+    # Use Opus 4.5 with thinking as default if no model specified
+    effective_model = model if model is not None else DEFAULT_FORMAT_MEETING_MODEL
+    provider = LLMProvider(model=effective_model)
     response = provider.query(text=full_text)
     return response.text
 
@@ -159,6 +127,7 @@ def format_meeting_file(
     output_path: Path,
     model: Optional[str] = None,
     language: Optional[str] = None,
+    domain_context: str = "",
 ) -> tuple[str, str]:
     """
     Format a meeting transcription markdown file.
@@ -168,6 +137,7 @@ def format_meeting_file(
         output_path: Output markdown file path
         model: Specific model
         language: Language code for prompt (overrides file metadata)
+        domain_context: Optional domain context to inject.
 
     Returns:
         Tuple of (language_used, language_source) where source is "file", "cli", or "default"
@@ -209,7 +179,12 @@ def format_meeting_file(
 
     # Process the body
     logger.info(f"Processing {len(body)} characters of content...")
-    formatted_body = format_meeting_text(body, model=model, language=language)
+    formatted_body = format_meeting_text(
+        body,
+        model=model,
+        language=language,
+        domain_context=domain_context,
+    )
 
     # The format-meeting prompt produces a complete document, so we use it directly
     output_path.write_text(formatted_body, encoding="utf-8")

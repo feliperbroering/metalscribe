@@ -29,9 +29,9 @@ class TestLoadFormatMeetingPrompt:
         prompt = load_format_meeting_prompt()
         # Check for key sections from the prompt
         assert "SYSTEM ROLE" in prompt
-        assert "CONTEXTO" in prompt
+        assert "CONTEXTO DA TRANSCRIÇÃO" in prompt
         assert "ESTRUTURA DO DOCUMENTO DE SAÍDA" in prompt
-        assert "SUMÁRIO EXECUTIVO" in prompt
+        assert "Resumo" in prompt
         assert "PONTOS DE AÇÃO" in prompt
 
     def test_load_prompt_removes_title(self):
@@ -144,7 +144,7 @@ class TestFormatMeetingText:
 
         result = format_meeting_text(text="Raw transcription", model=None)
 
-        mock_load_prompt.assert_called_once_with(None)
+        mock_load_prompt.assert_called_once_with(None, domain_context="")
         mock_provider_instance.query.assert_called_once()
         # Verify prompt is included in the query (query is called with text=...)
         call_kwargs = mock_provider_instance.query.call_args[1]

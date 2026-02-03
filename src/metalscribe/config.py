@@ -2,6 +2,7 @@
 
 import os
 import platform
+from importlib import resources
 from enum import IntEnum
 from pathlib import Path
 
@@ -65,7 +66,13 @@ WHISPER_MODELS = {
     },
 }
 
-# Default LLM model for refine and format-meeting commands
+# Default LLM models for refine and format-meeting commands
+# These are the model identifiers accepted by claude-agent-sdk
+# Can use aliases ("sonnet", "opus") or full names ("claude-sonnet-4-5", "claude-opus-4-5")
+DEFAULT_REFINE_MODEL = "claude-sonnet-4-5"  # Sonnet 4.5 for refine command
+DEFAULT_FORMAT_MEETING_MODEL = "claude-opus-4-5"  # Opus 4.5 with thinking for format-meeting
+
+# Legacy: Default LLM model (deprecated, use command-specific defaults above)
 # None means use Claude Code SDK default model
 # Can be overridden via METALSCRIBE_DEFAULT_LLM_MODEL environment variable
 # If set to empty string, also uses SDK default
@@ -121,7 +128,14 @@ def get_prompt_language(whisper_lang: str | None = None) -> str:
 
 def get_prompts_dir() -> Path:
     """Returns the base prompts directory."""
-    return Path(__file__).parent.parent.parent / "docs" / "prompts"
+    prompts_dir = resources.files("metalscribe") / "prompts"
+    if isinstance(prompts_dir, Path):
+        return prompts_dir
+
+    fallback_dir = Path(__file__).resolve().parent / "prompts"
+    if not fallback_dir.exists():
+        raise FileNotFoundError("Prompts directory not found in package resources.")
+    return fallback_dir
 
 
 def get_prompt_path(prompt_name: str, language: str | None = None) -> Path:

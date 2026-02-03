@@ -11,9 +11,9 @@ from rich.table import Table
 
 from metalscribe.config import DEFAULT_LANGUAGE, DEFAULT_PROMPT_LANGUAGE, get_prompt_language
 from metalscribe.core.audio import convert_to_wav_16k
+from metalscribe.core.context_validator import validate_context
 from metalscribe.core.format_meeting import (
     estimate_tokens,
-    extract_language_from_metadata,
     format_meeting_file,
     get_language_warning,
     load_format_meeting_prompt,
@@ -38,6 +38,7 @@ from metalscribe.llm import (
 )
 from metalscribe.utils.audio_info import get_audio_duration
 from metalscribe.utils.logging import log_timing, setup_logging
+from metalscribe.utils.metadata import extract_language_from_metadata
 
 console = Console()
 logger = logging.getLogger(__name__)
@@ -86,6 +87,13 @@ logger = logging.getLogger(__name__)
     help="LLM model for refine and format-meeting (uses Claude Code default if not specified)",
 )
 @click.option(
+    "--context",
+    "-c",
+    type=click.Path(exists=True, path_type=Path),
+    default=None,
+    help="Domain context file for improved transcription quality",
+)
+@click.option(
     "--yes",
     "-y",
     is_flag=True,
@@ -104,6 +112,7 @@ def run_meeting(
     speakers: int,
     output: Path,
     llm_model: str,
+    context: Path | None,
     yes: bool,
     verbose: bool,
 ) -> None:
@@ -118,6 +127,26 @@ def run_meeting(
     import time
 
     start_time = time.time()
+
+    domain_context = ""
+    if context:
+        domain_context = context.read_text(encoding="utf-8")
+        console.print(
+            f"[cyan]Using context file: {context} ({len(domain_context)} chars)[/cyan]"
+        )
+
+        # Validate context and show warnings
+        validation = validate_context(domain_context)
+        for warning in validation.warnings:
+            console.print(f"[yellow]Context warning: {warning}[/yellow]")
+        if not validation.is_valid:
+            for error in validation.errors:
+                console.print(f"[red]Context error: {error}[/red]")
+            console.print(
+                "[red]Context file has validation errors. "
+                "Run 'metalscribe context validate' for details.[/red]"
+            )
+            raise click.Abort()
 
     # Determine output prefix
     if output is None:
@@ -219,6 +248,7 @@ def run_meeting(
             input_path=md_path,
             output_path=refined_md_path,
             model=llm_model,
+            domain_context=domain_context,
         )
 
         # Show language notice
@@ -286,7 +316,7 @@ def run_meeting(
             raise click.Abort()
 
         # Load prompt for estimation
-        prompt = load_format_meeting_prompt(language)
+        prompt = load_format_meeting_prompt(language, domain_context=domain_context)
 
         # Estimate tokens
         estimates = estimate_tokens(body, prompt)
@@ -326,6 +356,7 @@ def run_meeting(
             output_path=formatted_md_path,
             model=llm_model,
             language=language,
+            domain_context=domain_context,
         )
 
         format_time = time.time() - format_start

@@ -112,6 +112,9 @@ Complete pipeline with LLM refinement and meeting formatting: transcription + di
 
 ```bash
 metalscribe run-meeting --input audio.m4a --model large-v3 --speakers 2
+
+# With domain context for better quality
+metalscribe run-meeting --input audio.m4a --context my-context.md
 ```
 
 Automatically generates all files from `run` plus:
@@ -119,8 +122,33 @@ Automatically generates all files from `run` plus:
 - `*_formatted-meeting.md`: Professional meeting document (summary, action items, etc.)
 
 **Options:**
+- `--context, -c`: Domain context file for improved transcription quality (see `metalscribe context`)
 - `--llm-model`: Specify LLM model (uses Claude Code default if not specified)
 - `--yes, -y`: Skip token confirmation prompt for format-meeting
+
+### `metalscribe context`
+
+Manage domain context files for improved transcription quality. Context files provide terminology, proper nouns, and domain knowledge to improve LLM refinement.
+
+```bash
+# Show the context template
+metalscribe context show
+
+# Copy template to a file
+metalscribe context copy my-context.md
+
+# Validate a context file
+metalscribe context validate my-context.md
+```
+
+**Creating a context file:**
+1. Copy the template: `metalscribe context copy my-context.md`
+2. Fill in your domain information (terminology, proper nouns, meeting structure)
+3. Remove example placeholders and HTML comments
+4. Validate: `metalscribe context validate my-context.md`
+5. Use with run-meeting: `metalscribe run-meeting --input audio.m4a --context my-context.md`
+
+**Example context files:** See `examples/` folder for domain-specific examples (medical, software development, etc.).
 
 ### `metalscribe refine`
 

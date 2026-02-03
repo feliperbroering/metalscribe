@@ -1,37 +1,37 @@
 #!/bin/bash
-# Script para instalar pyannote.audio com suporte MPS GPU
+# Script to install pyannote.audio with MPS GPU support
 
 set -e
 
-echo "Instalando pyannote.audio com suporte MPS GPU..."
+echo "Installing pyannote.audio with MPS GPU support..."
 
-# Verifica token do HuggingFace
+# Check HuggingFace token
 if [ -z "$HF_TOKEN" ] && [ -z "$HUGGINGFACE_TOKEN" ]; then
-    echo "✗ Erro: Token do HuggingFace não configurado"
-    echo "Configure: export HF_TOKEN=seu_token"
+    echo "✗ Error: HuggingFace token not configured"
+    echo "Configure: export HF_TOKEN=your_token"
     exit 1
 fi
 
 VENV_PATH="pyannote_venv"
 
-# Cria venv se não existir
+# Create venv if it doesn't exist
 if [ ! -d "$VENV_PATH" ]; then
-    echo "Criando venv..."
+    echo "Creating venv..."
     python3 -m venv "$VENV_PATH"
 fi
 
 PYTHON="$VENV_PATH/bin/python"
 
-echo "Atualizando pip..."
+echo "Updating pip..."
 "$PYTHON" -m pip install --upgrade pip
 
-echo "Instalando PyTorch com suporte MPS..."
+echo "Installing PyTorch with MPS support..."
 "$PYTHON" -m pip install torch torchaudio
 
-echo "Instalando pyannote.audio..."
+echo "Installing pyannote.audio..."
 "$PYTHON" -m pip install pyannote.audio==3.4.0
 
-echo "Verificando suporte MPS..."
+echo "Verifying MPS support..."
 "$PYTHON" -c "import torch; print('MPS available:', torch.backends.mps.is_available() if hasattr(torch.backends, 'mps') else False)"
 
-echo "✓ pyannote.audio instalado com sucesso"
+echo "✓ pyannote.audio installed successfully"

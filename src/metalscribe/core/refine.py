@@ -1,42 +1,18 @@
 """Module for refining transcriptions using LLM."""
 
 import logging
-import re
 from pathlib import Path
 from typing import Optional
 
-from metalscribe.config import (
-    DEFAULT_PROMPT_LANGUAGE,
-    get_prompt_path,
-)
+from metalscribe.config import DEFAULT_PROMPT_LANGUAGE, DEFAULT_REFINE_MODEL
+from metalscribe.core.prompt_loader import load_prompt
 from metalscribe.llm import LLMProvider
+from metalscribe.utils.metadata import extract_language_from_metadata
 
 logger = logging.getLogger(__name__)
 
 
-def extract_language_from_metadata(content: str) -> Optional[str]:
-    """
-    Extract the prompt_language from markdown file metadata.
-
-    Args:
-        content: The markdown file content.
-
-    Returns:
-        The prompt_language value if found, None otherwise.
-    """
-    # Look for prompt_language in metadata section (before ---)
-    lines = content.split("\n")
-    for line in lines:
-        if line.strip() == "---":
-            break
-        # Match: - **prompt_language**: pt-BR
-        match = re.match(r"[-*\s]*\*?\*?prompt_language\*?\*?:\s*(.+)", line, re.IGNORECASE)
-        if match:
-            return match.group(1).strip()
-    return None
-
-
-def load_refine_prompt(language: Optional[str] = None) -> str:
+def load_refine_prompt(language: Optional[str] = None, domain_context: str = "") -> str:
     """
     Load the refine prompt from the markdown file.
 
@@ -45,24 +21,12 @@ def load_refine_prompt(language: Optional[str] = None) -> str:
 
     Args:
         language: Language code (e.g., "pt-BR"). Uses default if None.
+        domain_context: Optional domain context to inject.
 
     Returns:
         The prompt content as string.
     """
-    prompt_path = get_prompt_path("refine", language)
-    content = prompt_path.read_text(encoding="utf-8")
-
-    # Remove only the main title
-    # but keep the entire markdown structure
-    lines = content.split("\n")
-    # Skip the first line if it's a title
-    if lines and lines[0].startswith("# "):
-        lines = lines[1:]
-    # Remove initial empty line if present
-    if lines and not lines[0].strip():
-        lines = lines[1:]
-
-    return "\n".join(lines)
+    return load_prompt("refine", language=language, domain_context=domain_context)
 
 
 def get_language_warning(language: str, source: str = "default") -> Optional[str]:
@@ -96,6 +60,7 @@ def refine_text(
     model: Optional[str] = None,
     prompt_path: Optional[Path] = None,
     language: Optional[str] = None,
+    domain_context: str = "",
 ) -> str:
     """
     Refine text using LLM via Claude Code.
@@ -105,6 +70,7 @@ def refine_text(
         model: Specific model (optional)
         prompt_path: Path to custom prompt (optional)
         language: Language code for prompt (optional)
+        domain_context: Optional domain context to inject.
 
     Returns:
         Refined text
@@ -113,9 +79,11 @@ def refine_text(
     if prompt_path:
         prompt = prompt_path.read_text(encoding="utf-8")
     else:
-        prompt = load_refine_prompt(language)
+        prompt = load_refine_prompt(language, domain_context=domain_context)
 
-    provider = LLMProvider(model=model, system_prompt=prompt)
+    # Use Sonnet 4.5 as default if no model specified
+    effective_model = model if model is not None else DEFAULT_REFINE_MODEL
+    provider = LLMProvider(model=effective_model, system_prompt=prompt)
     response = provider.query(text=text)
     return response.text
 
@@ -126,6 +94,7 @@ def refine_markdown_file(
     model: Optional[str] = None,
     chunk_size: int = 10000,
     language: Optional[str] = None,
+    domain_context: str = "",
 ) -> tuple[str, str]:
     """
     Refine a markdown transcription file, preserving structure and metadata.
@@ -136,6 +105,7 @@ def refine_markdown_file(
         model: Specific model
         chunk_size: Maximum chunk size to process (characters, not used yet)
         language: Language code for prompt (overrides file metadata)
+        domain_context: Optional domain context to inject.
 
     Returns:
         Tuple of (language_used, language_source) where source is "file", "cli", or "default"
@@ -178,7 +148,12 @@ def refine_markdown_file(
 
     # Process the body
     logger.info(f"Processing {len(body)} characters of content...")
-    refined_body = refine_text(body, model=model, language=language)
+    refined_body = refine_text(
+        body,
+        model=model,
+        language=language,
+        domain_context=domain_context,
+    )
 
     # Reconstruct file preserving header
     if header:
