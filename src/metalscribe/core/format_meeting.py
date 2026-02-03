@@ -6,9 +6,7 @@ from pathlib import Path
 from typing import Optional
 
 from metalscribe.config import (
-    DEFAULT_LLM_MODEL,
     DEFAULT_PROMPT_LANGUAGE,
-    SUPPORTED_PROMPT_LANGUAGES,
     get_prompt_path,
 )
 from metalscribe.llm import LLMProvider
@@ -19,10 +17,10 @@ logger = logging.getLogger(__name__)
 def extract_language_from_metadata(content: str) -> Optional[str]:
     """
     Extract the prompt_language from markdown file metadata.
-    
+
     Args:
         content: The markdown file content.
-    
+
     Returns:
         The prompt_language value if found, None otherwise.
     """
@@ -53,10 +51,10 @@ def load_format_meeting_prompt(language: Optional[str] = None) -> str:
 
     Returns the content removing only the main title, keeping the markdown
     structure for better LLM readability.
-    
+
     Args:
         language: Language code (e.g., "pt-BR"). Uses default if None.
-    
+
     Returns:
         The prompt content as string.
     """
@@ -79,11 +77,11 @@ def load_format_meeting_prompt(language: Optional[str] = None) -> str:
 def get_language_warning(language: str, source: str = "default") -> Optional[str]:
     """
     Get a warning message about the prompt language if applicable.
-    
+
     Args:
         language: The language being used.
         source: Where the language came from ("default", "file", "cli").
-    
+
     Returns:
         Warning message or None if no warning needed.
     """
@@ -170,7 +168,7 @@ def format_meeting_file(
         output_path: Output markdown file path
         model: Specific model
         language: Language code for prompt (overrides file metadata)
-    
+
     Returns:
         Tuple of (language_used, language_source) where source is "file", "cli", or "default"
     """
@@ -216,5 +214,5 @@ def format_meeting_file(
     # The format-meeting prompt produces a complete document, so we use it directly
     output_path.write_text(formatted_body, encoding="utf-8")
     logger.info(f"Formatted file saved to: {output_path}")
-    
+
     return language, language_source

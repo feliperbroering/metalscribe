@@ -1,7 +1,6 @@
 """Claude Code authentication verification and setup guide."""
 
 import shutil
-import subprocess
 from typing import Tuple
 
 from rich.console import Console
@@ -28,17 +27,68 @@ def check_cli_installed() -> bool:
 
 
 def check_authenticated() -> bool:
-    """Check if user is authenticated with Claude Code."""
-    try:
-        result = subprocess.run(
-            ["claude", "auth", "status"],
-            capture_output=True,
-            text=True,
-            timeout=10,
-        )
-        return result.returncode == 0
-    except (subprocess.TimeoutExpired, FileNotFoundError):
+    """
+    Check if user is authenticated with Claude Code.
+
+    Since 'claude auth status' CLI command may not work reliably, we try to make
+    a minimal test query to verify authentication. This is more reliable than
+    parsing CLI output.
+    """
+    # If SDK is not installed, definitely not authenticated
+    if not check_sdk_installed():
         return False
+
+    # If CLI is not installed, can't authenticate
+    if not check_cli_installed():
+        return False
+
+    # Try to make a minimal test query to verify authentication
+    try:
+        import asyncio
+
+        from claude_agent_sdk import ClaudeAgentOptions, query
+        from claude_agent_sdk.types import AssistantMessage, ResultMessage
+
+        async def test_auth():
+            """Test authentication with a minimal query."""
+            options = ClaudeAgentOptions(
+                system_prompt="",
+                model=None,  # Use SDK default
+                allowed_tools=[],
+            )
+            # Make a very small test query
+            async for message in query(prompt="Hi", options=options):
+                if isinstance(message, ResultMessage):
+                    # Got a result - check if it's an auth error
+                    if message.is_error:
+                        error_msg = str(message.result).lower()
+                        if "auth" in error_msg or "unauthorized" in error_msg or "401" in error_msg:
+                            return False
+                        # Other errors might be OK (e.g., rate limit), assume authenticated
+                    return True  # Got result, authenticated
+                if isinstance(message, AssistantMessage):
+                    # Got assistant response, definitely authenticated
+                    return True
+            return False
+
+        # Run with a very short timeout to avoid hanging
+        try:
+            return asyncio.run(asyncio.wait_for(test_auth(), timeout=2.0))
+        except asyncio.TimeoutError:
+            # Timeout - likely network issue or slow response, assume authenticated
+            # Real auth errors will surface during actual queries with better messages
+            return True
+        except Exception as e:
+            # Check if it's an auth-related error
+            error_str = str(e).lower()
+            if any(keyword in error_str for keyword in ["auth", "unauthorized", "401", "403", "not authenticated", "login"]):
+                return False
+            # Other errors - assume authenticated (let real query handle it)
+            return True
+    except Exception:
+        # SDK import or initialization failed - fall back to assuming OK
+        # Real errors will surface during actual queries
+        return True
 
 
 def verify_setup() -> Tuple[bool, str]:

@@ -66,9 +66,11 @@ WHISPER_MODELS = {
 }
 
 # Default LLM model for refine and format-meeting commands
-# Claude Opus 4.5 with thinking mode (supports extended thinking)
+# None means use Claude Code SDK default model
 # Can be overridden via METALSCRIBE_DEFAULT_LLM_MODEL environment variable
-DEFAULT_LLM_MODEL = os.environ.get("METALSCRIBE_DEFAULT_LLM_MODEL") or "claude-opus-4-5-20250514"
+# If set to empty string, also uses SDK default
+_env_model = os.environ.get("METALSCRIBE_DEFAULT_LLM_MODEL")
+DEFAULT_LLM_MODEL = _env_model if _env_model and _env_model.strip() else None
 
 # Global default language (Whisper code)
 # Can be overridden via METALSCRIBE_DEFAULT_LANGUAGE environment variable
@@ -99,21 +101,21 @@ DEFAULT_PROMPT_LANGUAGE = LANGUAGE_MAPPING.get(DEFAULT_LANGUAGE, "pt-BR")
 def get_prompt_language(whisper_lang: str | None = None) -> str:
     """
     Converts Whisper language code to prompt code.
-    
+
     Args:
-        whisper_lang: Whisper language code (e.g., "pt", "en"). 
+        whisper_lang: Whisper language code (e.g., "pt", "en").
                       If None, uses DEFAULT_LANGUAGE.
-    
+
     Returns:
         Prompt code (e.g., "pt-BR", "en-US")
     """
     lang = whisper_lang or DEFAULT_LANGUAGE
     prompt_lang = LANGUAGE_MAPPING.get(lang, DEFAULT_PROMPT_LANGUAGE)
-    
+
     # If mapped language has no prompts, use default
     if prompt_lang not in SUPPORTED_PROMPT_LANGUAGES:
         return DEFAULT_PROMPT_LANGUAGE
-    
+
     return prompt_lang
 
 
@@ -125,15 +127,15 @@ def get_prompts_dir() -> Path:
 def get_prompt_path(prompt_name: str, language: str | None = None) -> Path:
     """
     Returns the path for a specific prompt.
-    
+
     Args:
         prompt_name: Prompt name (e.g., "refine", "format-meeting")
         language: BCP 47 language code (e.g., "pt-BR") or Whisper (e.g., "pt").
                   Uses DEFAULT_PROMPT_LANGUAGE if None.
-    
+
     Returns:
         Path to the prompt file
-    
+
     Raises:
         ValueError: If language is not supported
         FileNotFoundError: If prompt does not exist
@@ -143,16 +145,16 @@ def get_prompt_path(prompt_name: str, language: str | None = None) -> Path:
         lang = get_prompt_language(language)
     else:
         lang = language or DEFAULT_PROMPT_LANGUAGE
-    
+
     if lang not in SUPPORTED_PROMPT_LANGUAGES:
         raise ValueError(
             f"Language '{lang}' not supported for prompts. "
             f"Available: {', '.join(SUPPORTED_PROMPT_LANGUAGES)}"
         )
-    
+
     prompt_path = get_prompts_dir() / lang / f"{prompt_name}.md"
-    
+
     if not prompt_path.exists():
         raise FileNotFoundError(f"Prompt not found: {prompt_path}")
-    
+
     return prompt_path

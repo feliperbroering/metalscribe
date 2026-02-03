@@ -22,14 +22,14 @@ Transcribes audio using whisper.cpp.
 
 **Options**:
 - `--input, -i`: Audio file (required)
-- `--model, -m`: Model (tiny, base, small, medium, large-v3) [default: medium]
+- `--model, -m`: Model (tiny, base, small, medium, large-v3) [default: large-v3]
 - `--lang, -l`: Language code (e.g., pt, en)
 - `--output, -o`: Output JSON file
 - `--verbose, -v`: Verbose mode
 
 **Example**:
 ```bash
-metalscribe transcribe --input audio.m4a --model medium --lang en
+metalscribe transcribe --input audio.m4a --model large-v3 --lang en
 ```
 
 ### `metalscribe diarize`
@@ -68,7 +68,7 @@ Complete pipeline: transcription + diarization + merge + export.
 
 **Options**:
 - `--input, -i`: Audio file (required)
-- `--model, -m`: Whisper model [default: medium]
+- `--model, -m`: Whisper model [default: large-v3]
 - `--lang, -l`: Language code
 - `--speakers, -s`: Number of speakers
 - `--output, -o`: Output file prefix
@@ -76,7 +76,28 @@ Complete pipeline: transcription + diarization + merge + export.
 
 **Example**:
 ```bash
-metalscribe run --input audio.m4a --model medium --speakers 2
+metalscribe run --input audio.m4a --model large-v3 --speakers 2
+```
+
+### `metalscribe run-meeting`
+
+Complete pipeline with LLM refinement and meeting formatting: transcription + diarization + merge + export + refine + format-meeting.
+
+**Prerequisite:** Authenticate with `claude auth login`.
+
+**Options**:
+- `--input, -i`: Audio file (required)
+- `--model, -m`: Whisper model [default: large-v3]
+- `--lang, -l`: Language code
+- `--speakers, -s`: Number of speakers
+- `--output, -o`: Output file prefix
+- `--llm-model`: LLM model for refine and format-meeting (uses Claude Code default if not specified)
+- `--yes, -y`: Skip token confirmation prompt for format-meeting
+- `--verbose, -v`: Verbose mode
+
+**Example**:
+```bash
+metalscribe run-meeting --input audio.m4a --model large-v3 --speakers 2
 ```
 
 ## Python Modules
@@ -96,7 +117,7 @@ from metalscribe.core.whisper import run_transcription
 
 segments = run_transcription(
     audio_path: Path,
-    model_name: str = "medium",
+    model_name: str = "large-v3",
     language: Optional[str] = None,
     output_json: Optional[Path] = None,
 ) -> List[TranscriptSegment]

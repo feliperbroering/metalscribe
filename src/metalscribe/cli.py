@@ -9,6 +9,7 @@ from metalscribe.commands.doctor import doctor
 from metalscribe.commands.format_meeting import format_meeting
 from metalscribe.commands.refine import refine
 from metalscribe.commands.run import run
+from metalscribe.commands.run_meeting import run_meeting
 from metalscribe.commands.transcribe import transcribe
 
 
@@ -25,6 +26,7 @@ main.add_command(transcribe)
 main.add_command(diarize)
 main.add_command(combine)
 main.add_command(run)
+main.add_command(run_meeting)
 main.add_command(refine)
 main.add_command(format_meeting)
 

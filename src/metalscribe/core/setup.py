@@ -5,7 +5,12 @@ import sys
 import urllib.request
 from pathlib import Path
 
-from metalscribe.config import WHISPER_MODELS, get_brew_prefix, get_cache_dir, get_pyannote_venv_path
+from metalscribe.config import (
+    WHISPER_MODELS,
+    get_brew_prefix,
+    get_cache_dir,
+    get_pyannote_venv_path,
+)
 from metalscribe.core.checks import validate_hf_token
 from metalscribe.utils.subprocess import run_command
 

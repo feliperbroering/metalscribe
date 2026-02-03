@@ -49,8 +49,12 @@ class LLMProvider:
             model: Model to use (optional, uses DEFAULT_LLM_MODEL from config or Claude Code default)
             system_prompt: Default system prompt (can be overridden in query)
         """
-        # Use provided model, or fall back to config default, or None (Claude Code SDK default)
-        self.model = model or DEFAULT_LLM_MODEL
+        # Use provided model if given, otherwise use config default (which may be None)
+        # None means use Claude Code SDK default model
+        if model is not None:
+            self.model = model
+        else:
+            self.model = DEFAULT_LLM_MODEL  # May be None, which is OK
         self.system_prompt = system_prompt
         self._verified = False
 
@@ -71,21 +75,29 @@ class LLMProvider:
         from claude_agent_sdk.types import AssistantMessage, ResultMessage, TextBlock
 
         effective_system = system_prompt or self.system_prompt or ""
-        effective_model = model or self.model
+        # Use provided model if explicitly given, otherwise use instance model (which may be None)
+        # None means use Claude Code SDK default
+        if model is not None:
+            effective_model = model
+        else:
+            effective_model = self.model  # May be None, which is OK
 
         # Enable thinking mode for Opus 4.5 (supports extended thinking)
         # Default thinking budget: 10000 tokens for deep reasoning
         max_thinking_tokens = 10000 if (effective_model and "opus-4-5" in effective_model.lower()) else None
-        
+
         options = ClaudeAgentOptions(
             system_prompt=effective_system,
-            model=effective_model,
+            model=effective_model,  # Can be None, SDK will use default
             allowed_tools=[],  # No tools needed for text processing
             max_thinking_tokens=max_thinking_tokens,  # Enable thinking mode for Opus 4.5
         )
 
         full_text = ""
         duration_ms = None
+        chunk_count = 0
+        last_log_time = None
+        import time
 
         model_info = f" with model {effective_model}" if effective_model else " (using Claude Code default)"
         logger.info(f"Querying Claude Code{model_info}...")
@@ -95,11 +107,20 @@ class LLMProvider:
                 for block in message.content:
                     if isinstance(block, TextBlock):
                         full_text += block.text
+                        chunk_count += 1
+                        # Log progress every 5 seconds or on first chunk (to show it's working)
+                        current_time = time.time()
+                        if chunk_count == 1:
+                            logger.info("Receiving response...")
+                            last_log_time = current_time
+                        elif last_log_time and (current_time - last_log_time) >= 5.0:
+                            logger.info(f"Still processing... ({len(full_text)} chars received so far)")
+                            last_log_time = current_time
             elif isinstance(message, ResultMessage):
                 if message.is_error:
                     raise LLMError(f"Claude Code error: {message.result}")
                 duration_ms = message.duration_ms
-                logger.info(f"Claude Code completed in {duration_ms}ms")
+                logger.info(f"Claude Code completed in {duration_ms}ms ({chunk_count} chunks, {len(full_text)} chars)")
 
         return LLMResponse(
             text=full_text,
@@ -152,15 +173,20 @@ class LLMProvider:
         from claude_agent_sdk.types import AssistantMessage, TextBlock
 
         effective_system = system_prompt or self.system_prompt or ""
-        effective_model = model or self.model
+        # Use provided model if explicitly given, otherwise use instance model (which may be None)
+        # None means use Claude Code SDK default
+        if model is not None:
+            effective_model = model
+        else:
+            effective_model = self.model  # May be None, which is OK
 
         # Enable thinking mode for Opus 4.5 (supports extended thinking)
         # Default thinking budget: 10000 tokens for deep reasoning
         max_thinking_tokens = 10000 if (effective_model and "opus-4-5" in effective_model.lower()) else None
-        
+
         options = ClaudeAgentOptions(
             system_prompt=effective_system,
-            model=effective_model,
+            model=effective_model,  # Can be None, SDK will use default
             allowed_tools=[],
             max_thinking_tokens=max_thinking_tokens,  # Enable thinking mode for Opus 4.5
         )

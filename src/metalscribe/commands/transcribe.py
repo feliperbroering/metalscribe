@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
     "--model",
     "-m",
     type=click.Choice(["tiny", "base", "small", "medium", "large-v3"], case_sensitive=False),
-    default="medium",
+    default="large-v3",
     help="Whisper model",
 )
 @click.option(

@@ -7,7 +7,6 @@ from typing import Optional
 
 from metalscribe.config import (
     DEFAULT_PROMPT_LANGUAGE,
-    SUPPORTED_PROMPT_LANGUAGES,
     get_prompt_path,
 )
 from metalscribe.llm import LLMProvider
@@ -18,10 +17,10 @@ logger = logging.getLogger(__name__)
 def extract_language_from_metadata(content: str) -> Optional[str]:
     """
     Extract the prompt_language from markdown file metadata.
-    
+
     Args:
         content: The markdown file content.
-    
+
     Returns:
         The prompt_language value if found, None otherwise.
     """
@@ -43,10 +42,10 @@ def load_refine_prompt(language: Optional[str] = None) -> str:
 
     Extracts prompt content removing only the main title,
     but keeping the markdown structure for better LLM readability.
-    
+
     Args:
         language: Language code (e.g., "pt-BR"). Uses default if None.
-    
+
     Returns:
         The prompt content as string.
     """
@@ -69,11 +68,11 @@ def load_refine_prompt(language: Optional[str] = None) -> str:
 def get_language_warning(language: str, source: str = "default") -> Optional[str]:
     """
     Get a warning message about the prompt language if applicable.
-    
+
     Args:
         language: The language being used.
         source: Where the language came from ("default", "file", "cli").
-    
+
     Returns:
         Warning message or None if no warning needed.
     """
@@ -137,7 +136,7 @@ def refine_markdown_file(
         model: Specific model
         chunk_size: Maximum chunk size to process (characters, not used yet)
         language: Language code for prompt (overrides file metadata)
-    
+
     Returns:
         Tuple of (language_used, language_source) where source is "file", "cli", or "default"
     """
@@ -189,5 +188,5 @@ def refine_markdown_file(
 
     output_path.write_text(output_content, encoding="utf-8")
     logger.info(f"Refined file saved to: {output_path}")
-    
+
     return language, language_source

@@ -71,7 +71,7 @@ def combine(transcript: Path, diarize: Path, output: Path, verbose: bool) -> Non
 
     # Determine output prefix
     if output is None:
-        output = transcript.with_suffix("").with_suffix("_final")
+        output = transcript.with_suffix("").with_suffix("_merged")
     else:
         output = Path(output)
 

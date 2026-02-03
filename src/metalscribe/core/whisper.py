@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 def run_transcription(
     audio_path: Path,
-    model_name: str = "medium",
+    model_name: str = "large-v3",
     language: Optional[str] = None,
     output_json: Optional[Path] = None,
 ) -> List[TranscriptSegment]:

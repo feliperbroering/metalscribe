@@ -12,7 +12,11 @@ from metalscribe.core.audio import convert_to_wav_16k
 from metalscribe.core.merge import merge_segments
 from metalscribe.core.pyannote import run_diarization
 from metalscribe.core.whisper import run_transcription
-from metalscribe.exporters.json_exporter import export_json
+from metalscribe.exporters.json_exporter import (
+    export_diarize_json,
+    export_json,
+    export_transcript_json,
+)
 from metalscribe.exporters.markdown_exporter import export_markdown
 from metalscribe.exporters.srt_exporter import export_srt
 from metalscribe.utils.audio_info import get_audio_duration
@@ -34,7 +38,7 @@ logger = logging.getLogger(__name__)
     "--model",
     "-m",
     type=click.Choice(["tiny", "base", "small", "medium", "large-v3"], case_sensitive=False),
-    default="medium",
+    default="large-v3",
     help="Whisper model",
 )
 @click.option(
@@ -74,8 +78,8 @@ def run(input: Path, model: str, lang: str, speakers: int, output: Path, verbose
 
     # Determine output prefix
     if output is None:
-        # Remove extension and add _final suffix
-        output = input.parent / f"{input.stem}_final"
+        # Remove extension and add _merged suffix
+        output = input.parent / f"{input.stem}_merged"
     else:
         output = Path(output)
 
@@ -125,10 +129,12 @@ def run(input: Path, model: str, lang: str, speakers: int, output: Path, verbose
     json_path = output.with_suffix(".json")
     srt_path = output.with_suffix(".srt")
     md_path = output.with_suffix(".md")
+    transcript_json_path = output.parent / f"{output.stem}_transcript.json"
+    diarize_json_path = output.parent / f"{output.stem}_diarize.json"
 
     # Resolve prompt language from Whisper language code
     prompt_language = get_prompt_language(lang)
-    
+
     metadata = {
         "model": model,
         "language": lang,
@@ -137,6 +143,22 @@ def run(input: Path, model: str, lang: str, speakers: int, output: Path, verbose
         "input_file": str(input),
     }
 
+    # Export transcription only (without speaker info)
+    transcript_metadata = {
+        "model": model,
+        "language": lang,
+        "input_file": str(input),
+    }
+    export_transcript_json(transcript_segments, transcript_json_path, metadata=transcript_metadata)
+
+    # Export diarization only (speaker info only)
+    diarize_metadata = {
+        "num_speakers": speakers or "auto",
+        "input_file": str(input),
+    }
+    export_diarize_json(diarize_segments, diarize_json_path, metadata=diarize_metadata)
+
+    # Export merged results
     export_json(merged, json_path, metadata=metadata)
     export_srt(merged, srt_path)
     export_markdown(merged, md_path, title=input.stem, metadata=metadata)
@@ -170,7 +192,9 @@ def run(input: Path, model: str, lang: str, speakers: int, output: Path, verbose
 
     console.print("\n[green]✓ Pipeline complete![/green]")
     console.print("[green]Generated files:[/green]")
-    console.print(f"  - {json_path}")
+    console.print(f"  - {transcript_json_path} (transcription only)")
+    console.print(f"  - {diarize_json_path} (diarization only)")
+    console.print(f"  - {json_path} (merged)")
     console.print(f"  - {srt_path}")
     console.print(f"  - {md_path}")
     console.print(f"  - {timings_log}")

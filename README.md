@@ -36,15 +36,6 @@ pip install -e .
 metalscribe doctor --setup
 ```
 
-### Via Homebrew
-
-> Note: This installation method is available but building from source is currently recommended for the latest features.
-
-```bash
-brew tap feliperbroering/metalscribe https://github.com/feliperbroering/metalscribe.git
-brew install metalscribe
-```
-
 ### Initial Setup
 
 After installation, verify and configure your environment:
@@ -78,10 +69,10 @@ After installation, verify and configure your environment:
 
 ```bash
 # Complete pipeline (recommended)
-metalscribe run --input audio.m4a --model medium --speakers 2
+metalscribe run --input audio.m4a --model large-v3 --speakers 2
 
 # Or use individual commands
-metalscribe transcribe --input audio.m4a --model medium --lang en
+metalscribe transcribe --input audio.m4a --model large-v3 --lang en
 metalscribe diarize --input audio.m4a --speakers 2
 metalscribe combine --transcript transcript.json --diarize diarize.json
 ```
@@ -102,14 +93,34 @@ metalscribe doctor --setup       # Configure missing dependencies
 Complete pipeline: transcription + diarization + merge + export.
 
 ```bash
-metalscribe run --input audio.m4a --model medium --speakers 2
+metalscribe run --input audio.m4a --model large-v3 --speakers 2
 ```
 
 Automatically generates:
-- `*_final.json`: Structured JSON
-- `*_final.srt`: SRT subtitles
-- `*_final.md`: Readable Markdown
+- `*_transcript.json`: Transcription only (without speaker info)
+- `*_diarize.json`: Diarization only (speaker info only)
+- `*_merged.json`: Merged structured JSON (transcription + diarization)
+- `*_merged.srt`: SRT subtitles
+- `*_merged.md`: Readable Markdown
 - `*.timings.log`: Performance timing log
+
+### `metalscribe run-meeting`
+
+Complete pipeline with LLM refinement and meeting formatting: transcription + diarization + merge + export + refine + format-meeting.
+
+**Prerequisite:** Authenticate with `claude auth login`.
+
+```bash
+metalscribe run-meeting --input audio.m4a --model large-v3 --speakers 2
+```
+
+Automatically generates all files from `run` plus:
+- `*_refined.md`: Refined transcription (corrected ASR errors, improved punctuation)
+- `*_formatted-meeting.md`: Professional meeting document (summary, action items, etc.)
+
+**Options:**
+- `--llm-model`: Specify LLM model (uses Claude Code default if not specified)
+- `--yes, -y`: Skip token confirmation prompt for format-meeting
 
 ### `metalscribe refine`
 
