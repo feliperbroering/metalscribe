@@ -20,7 +20,7 @@ from metalscribe.exporters.json_exporter import (
 from metalscribe.exporters.markdown_exporter import export_markdown
 from metalscribe.exporters.srt_exporter import export_srt
 from metalscribe.utils.audio_info import get_audio_duration
-from metalscribe.utils.logging import log_timing, setup_logging
+from metalscribe.utils.logging import format_duration, log_timing, setup_logging
 
 console = Console()
 logger = logging.getLogger(__name__)
@@ -171,19 +171,19 @@ def run(input: Path, model: str, lang: str, speakers: int, output: Path, verbose
     total_time = time.time() - start_time
     total_rtf = total_time / audio_duration if audio_duration > 0 else None
     with open(timings_log, "w") as f:
-        f.write(f"Audio duration: {audio_duration:.2f}s\n")
-        f.write(f"\nConversion: {convert_time:.2f}s")
+        f.write(f"Audio duration: {format_duration(audio_duration)} ({audio_duration:.2f}s)\n")
+        f.write(f"\nConversion: {format_duration(convert_time)} ({convert_time:.2f}s)")
         if convert_rtf:
             f.write(f" (RTF: {convert_rtf:.3f})")
-        f.write(f"\nTranscription: {transcribe_time:.2f}s")
+        f.write(f"\nTranscription: {format_duration(transcribe_time)} ({transcribe_time:.2f}s)")
         if transcribe_rtf:
             f.write(f" (RTF: {transcribe_rtf:.3f})")
-        f.write(f"\nDiarization: {diarize_time:.2f}s")
+        f.write(f"\nDiarization: {format_duration(diarize_time)} ({diarize_time:.2f}s)")
         if diarize_rtf:
             f.write(f" (RTF: {diarize_rtf:.3f})")
-        f.write(f"\nMerge: {merge_time:.2f}s\n")
-        f.write(f"Export: {export_time:.2f}s\n")
-        f.write(f"\nTotal: {total_time:.2f}s")
+        f.write(f"\nMerge: {format_duration(merge_time)} ({merge_time:.2f}s)\n")
+        f.write(f"Export: {format_duration(export_time)} ({export_time:.2f}s)\n")
+        f.write(f"\nTotal: {format_duration(total_time)} ({total_time:.2f}s)")
         if total_rtf:
             f.write(f" (RTF: {total_rtf:.3f})")
         f.write("\n")

@@ -10,6 +10,22 @@ from rich.logging import RichHandler
 console = Console()
 
 
+def format_duration(seconds: float) -> str:
+    """
+    Format duration in seconds to HH:MM:SS format.
+    
+    Args:
+        seconds: Duration in seconds
+        
+    Returns:
+        Formatted string in HH:MM:SS format
+    """
+    hours = int(seconds // 3600)
+    minutes = int((seconds % 3600) // 60)
+    secs = int(seconds % 60)
+    return f"{hours:02d}:{minutes:02d}:{secs:02d}"
+
+
 def setup_logging(verbose: bool = False, log_file: Optional[Path] = None) -> None:
     """Configures logging with Rich."""
     level = logging.DEBUG if verbose else logging.INFO
