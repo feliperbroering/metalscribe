@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
     "-o",
     type=click.Path(path_type=Path),
     default=None,
-    help="Output refined markdown file (default: input_refined.md)",
+    help="Output refined markdown file (default: input_04_refined.md)",
 )
 @click.option(
     "--model",
@@ -77,7 +77,15 @@ def refine(
 
     # Determine output file
     if output is None:
-        output = input.with_name(f"{input.stem}_refined.md")
+        # Extract the base name without the numbered suffix if present
+        # e.g., "audio_03_merged.md" -> "audio"
+        stem = input.stem
+        if "_03_merged" in stem:
+            base_name = stem.replace("_03_merged", "")
+            output = input.parent / f"{base_name}_04_refined.md"
+        else:
+            # Fallback for files without the _03_merged pattern
+            output = input.with_name(f"{stem}_04_refined.md")
 
     console.print("[cyan]Refining transcription...[/cyan]")
     console.print(f"[dim]Input: {input}[/dim]")

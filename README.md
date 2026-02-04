@@ -6,7 +6,7 @@
 
 - 🎤 **Transcription**: Uses `whisper.cpp` with Metal GPU acceleration
 - 👥 **Diarization**: Identifies speakers using `pyannote.audio` with MPS GPU acceleration
-- 📝 **Multiple formats**: Generates JSON, SRT, and Markdown
+- 📝 **Structured output**: Generates JSON and Markdown with numbered stages
 - ⚡ **100% Local**: Core processing runs locally on your machine with no external dependencies
 - ✨ **Optional Refinement**: Use LLM (Claude) to refine transcriptions and correct ASR errors
 - 🚀 **Performance**: Efficient O(N+M) merge algorithm
@@ -97,12 +97,10 @@ metalscribe run --input audio.m4a --model large-v3 --speakers 2
 ```
 
 Automatically generates:
-- `*_transcript.json`: Transcription only (without speaker info)
-- `*_diarize.json`: Diarization only (speaker info only)
-- `*_merged.json`: Merged structured JSON (transcription + diarization)
-- `*_merged.srt`: SRT subtitles
-- `*_merged.md`: Readable Markdown
-- `*.timings.log`: Performance timing log
+- `*_01_transcript.json`: Transcription only (without speaker info)
+- `*_02_diarize.json`: Diarization only (speaker info only)
+- `*_03_merged.md`: Readable Markdown with transcription + diarization
+- `*_06_timings.log`: Performance timing log
 
 ### `metalscribe run-meeting`
 
@@ -118,8 +116,8 @@ metalscribe run-meeting --input audio.m4a --context my-context.md
 ```
 
 Automatically generates all files from `run` plus:
-- `*_refined.md`: Refined transcription (corrected ASR errors, improved punctuation)
-- `*_formatted-meeting.md`: Professional meeting document (summary, action items, etc.)
+- `*_04_refined.md`: Refined transcription (corrected ASR errors, improved punctuation)
+- `*_05_formatted-meeting.md`: Professional meeting document (summary, action items, etc.)
 
 **Options:**
 - `--context, -c`: Domain context file for improved transcription quality (see `metalscribe context`)

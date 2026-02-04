@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
     "-o",
     type=click.Path(path_type=Path),
     default=None,
-    help="Output formatted markdown file (default: input_formatted-meeting.md)",
+    help="Output formatted markdown file (default: input_05_formatted-meeting.md)",
 )
 @click.option(
     "--model",
@@ -106,7 +106,19 @@ def format_meeting(
 
     # Determine output file
     if output is None:
-        output = input.with_name(f"{input.stem}_formatted-meeting.md")
+        # Extract the base name without the numbered suffix if present
+        # e.g., "audio_04_refined.md" -> "audio"
+        stem = input.stem
+        if "_04_refined" in stem:
+            base_name = stem.replace("_04_refined", "")
+            output = input.parent / f"{base_name}_05_formatted-meeting.md"
+        elif "_03_merged" in stem:
+            # If refine step was skipped
+            base_name = stem.replace("_03_merged", "")
+            output = input.parent / f"{base_name}_05_formatted-meeting.md"
+        else:
+            # Fallback for files without the numbered pattern
+            output = input.with_name(f"{stem}_05_formatted-meeting.md")
 
     console.print("\n[cyan bold]Format Meeting[/cyan bold] - Claude Code")
     console.print(f"[dim]Input: {input}[/dim]")

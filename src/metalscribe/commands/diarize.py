@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
     "-o",
     type=click.Path(path_type=Path),
     default=None,
-    help="Output JSON file (default: input_diarize.json)",
+    help="Output JSON file (default: input_02_diarize.json)",
 )
 @click.option(
     "--verbose",
@@ -65,7 +65,7 @@ def diarize(input: Path, speakers: int, output: Path, verbose: bool) -> None:
 
     # Export JSON
     if output is None:
-        output = input.with_suffix("").with_suffix("_diarize.json")
+        output = input.parent / f"{input.stem}_02_diarize.json"
 
     # Convert to exportable format
     from metalscribe.core.models import MergedSegment

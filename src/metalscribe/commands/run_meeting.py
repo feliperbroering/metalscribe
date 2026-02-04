@@ -25,11 +25,9 @@ from metalscribe.core.refine import refine_markdown_file
 from metalscribe.core.whisper import run_transcription
 from metalscribe.exporters.json_exporter import (
     export_diarize_json,
-    export_json,
     export_transcript_json,
 )
 from metalscribe.exporters.markdown_exporter import export_markdown
-from metalscribe.exporters.srt_exporter import export_srt
 from metalscribe.llm import (
     AuthenticationError,
     CLINotInstalledError,
@@ -150,8 +148,8 @@ def run_meeting(
 
     # Determine output prefix
     if output is None:
-        # Remove extension and add _merged suffix
-        output = input.parent / f"{input.stem}_merged"
+        # Use input stem as base for output files
+        output = input.parent / input.stem
     else:
         output = Path(output)
 
@@ -198,11 +196,13 @@ def run_meeting(
     console.print("[cyan]Step 5: Exporting...[/cyan]")
     export_start = time.time()
 
-    json_path = output.with_suffix(".json")
-    srt_path = output.with_suffix(".srt")
-    md_path = output.with_suffix(".md")
-    transcript_json_path = output.parent / f"{output.stem}_transcript.json"
-    diarize_json_path = output.parent / f"{output.stem}_diarize.json"
+    # New naming convention:
+    # 1. audio_01_transcript.json
+    # 2. audio_02_diarize.json
+    # 3. audio_03_merged.md
+    transcript_json_path = output.parent / f"{output.stem}_01_transcript.json"
+    diarize_json_path = output.parent / f"{output.stem}_02_diarize.json"
+    merged_md_path = output.parent / f"{output.stem}_03_merged.md"
 
     # Resolve prompt language from Whisper language code
     prompt_language = get_prompt_language(lang)
@@ -230,10 +230,8 @@ def run_meeting(
     }
     export_diarize_json(diarize_segments, diarize_json_path, metadata=diarize_metadata)
 
-    # Export merged results
-    export_json(merged, json_path, metadata=metadata)
-    export_srt(merged, srt_path)
-    export_markdown(merged, md_path, title=input.stem, metadata=metadata)
+    # Export merged markdown only (no .json or .srt)
+    export_markdown(merged, merged_md_path, title=input.stem, metadata=metadata)
 
     export_time = time.time() - export_start
     log_timing("Export", export_time)
@@ -241,11 +239,11 @@ def run_meeting(
     # Step 6: Refine
     console.print("\n[cyan]Step 6: Refining transcription...[/cyan]")
     refine_start = time.time()
-    refined_md_path = output.parent / f"{output.stem}_refined.md"
+    refined_md_path = output.parent / f"{output.stem}_04_refined.md"
 
     try:
         language_used, language_source = refine_markdown_file(
-            input_path=md_path,
+            input_path=merged_md_path,
             output_path=refined_md_path,
             model=llm_model,
             domain_context=domain_context,
@@ -281,7 +279,7 @@ def run_meeting(
     # Step 7: Format Meeting
     console.print("\n[cyan]Step 7: Formatting meeting...[/cyan]")
     format_start = time.time()
-    formatted_md_path = output.parent / f"{output.stem}_formatted-meeting.md"
+    formatted_md_path = output.parent / f"{output.stem}_05_formatted-meeting.md"
 
     try:
         # Extract language from refined file metadata
@@ -374,8 +372,8 @@ def run_meeting(
         console.print(f"[red]Error during formatting: {e}[/red]")
         raise click.Abort()
 
-    # Timings log
-    timings_log = output.with_suffix(".timings.log")
+    # Timings log (06_timings.log)
+    timings_log = output.parent / f"{output.stem}_06_timings.log"
     total_time = time.time() - start_time
     total_rtf = total_time / audio_duration if audio_duration > 0 else None
     with open(timings_log, "w") as f:
@@ -402,11 +400,9 @@ def run_meeting(
 
     console.print("\n[green]✓ Pipeline complete![/green]")
     console.print("[green]Generated files:[/green]")
-    console.print(f"  - {transcript_json_path} (transcription only)")
-    console.print(f"  - {diarize_json_path} (diarization only)")
-    console.print(f"  - {json_path} (merged)")
-    console.print(f"  - {srt_path}")
-    console.print(f"  - {md_path} (raw merged)")
-    console.print(f"  - {refined_md_path} (refined)")
-    console.print(f"  - {formatted_md_path} (formatted meeting)")
+    console.print(f"  - {transcript_json_path}")
+    console.print(f"  - {diarize_json_path}")
+    console.print(f"  - {merged_md_path}")
+    console.print(f"  - {refined_md_path}")
+    console.print(f"  - {formatted_md_path}")
     console.print(f"  - {timings_log}")

@@ -14,11 +14,9 @@ from metalscribe.core.pyannote import run_diarization
 from metalscribe.core.whisper import run_transcription
 from metalscribe.exporters.json_exporter import (
     export_diarize_json,
-    export_json,
     export_transcript_json,
 )
 from metalscribe.exporters.markdown_exporter import export_markdown
-from metalscribe.exporters.srt_exporter import export_srt
 from metalscribe.utils.audio_info import get_audio_duration
 from metalscribe.utils.logging import format_duration, log_timing, setup_logging
 
@@ -78,8 +76,8 @@ def run(input: Path, model: str, lang: str, speakers: int, output: Path, verbose
 
     # Determine output prefix
     if output is None:
-        # Remove extension and add _merged suffix
-        output = input.parent / f"{input.stem}_merged"
+        # Use input stem as base for output files
+        output = input.parent / input.stem
     else:
         output = Path(output)
 
@@ -126,11 +124,13 @@ def run(input: Path, model: str, lang: str, speakers: int, output: Path, verbose
     console.print("[cyan]Step 5: Exporting...[/cyan]")
     export_start = time.time()
 
-    json_path = output.with_suffix(".json")
-    srt_path = output.with_suffix(".srt")
-    md_path = output.with_suffix(".md")
-    transcript_json_path = output.parent / f"{output.stem}_transcript.json"
-    diarize_json_path = output.parent / f"{output.stem}_diarize.json"
+    # New naming convention:
+    # 1. audio_01_transcript.json
+    # 2. audio_02_diarize.json
+    # 3. audio_03_merged.md
+    transcript_json_path = output.parent / f"{output.stem}_01_transcript.json"
+    diarize_json_path = output.parent / f"{output.stem}_02_diarize.json"
+    merged_md_path = output.parent / f"{output.stem}_03_merged.md"
 
     # Resolve prompt language from Whisper language code
     prompt_language = get_prompt_language(lang)
@@ -158,16 +158,14 @@ def run(input: Path, model: str, lang: str, speakers: int, output: Path, verbose
     }
     export_diarize_json(diarize_segments, diarize_json_path, metadata=diarize_metadata)
 
-    # Export merged results
-    export_json(merged, json_path, metadata=metadata)
-    export_srt(merged, srt_path)
-    export_markdown(merged, md_path, title=input.stem, metadata=metadata)
+    # Export merged markdown only (no .json or .srt)
+    export_markdown(merged, merged_md_path, title=input.stem, metadata=metadata)
 
     export_time = time.time() - export_start
     log_timing("Export", export_time)
 
-    # Timings log
-    timings_log = output.with_suffix(".timings.log")
+    # Timings log (06_timings.log)
+    timings_log = output.parent / f"{output.stem}_06_timings.log"
     total_time = time.time() - start_time
     total_rtf = total_time / audio_duration if audio_duration > 0 else None
     with open(timings_log, "w") as f:
@@ -192,9 +190,7 @@ def run(input: Path, model: str, lang: str, speakers: int, output: Path, verbose
 
     console.print("\n[green]✓ Pipeline complete![/green]")
     console.print("[green]Generated files:[/green]")
-    console.print(f"  - {transcript_json_path} (transcription only)")
-    console.print(f"  - {diarize_json_path} (diarization only)")
-    console.print(f"  - {json_path} (merged)")
-    console.print(f"  - {srt_path}")
-    console.print(f"  - {md_path}")
+    console.print(f"  - {transcript_json_path}")
+    console.print(f"  - {diarize_json_path}")
+    console.print(f"  - {merged_md_path}")
     console.print(f"  - {timings_log}")

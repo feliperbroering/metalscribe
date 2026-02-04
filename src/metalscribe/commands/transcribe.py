@@ -43,7 +43,7 @@ logger = logging.getLogger(__name__)
     "-o",
     type=click.Path(path_type=Path),
     default=None,
-    help="Output JSON file (default: input_transcript.json)",
+    help="Output JSON file (default: input_01_transcript.json)",
 )
 @click.option(
     "--verbose",
@@ -73,7 +73,7 @@ def transcribe(input: Path, model: str, lang: str, output: Path, verbose: bool) 
 
     # Export JSON
     if output is None:
-        output = input.with_suffix("").with_suffix("_transcript.json")
+        output = input.parent / f"{input.stem}_01_transcript.json"
 
     # Convert to MergedSegment (no speaker)
     merged_segments = [
