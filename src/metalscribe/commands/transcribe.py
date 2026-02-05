@@ -27,8 +27,42 @@ logger = logging.getLogger(__name__)
 @click.option(
     "--model",
     "-m",
-    type=click.Choice(["tiny", "base", "small", "medium", "large-v3"], case_sensitive=False),
-    default="large-v3",
+    type=click.Choice(
+        [
+            "tiny",
+            "tiny.en",
+            "tiny-q5_1",
+            "tiny.en-q5_1",
+            "tiny-q8_0",
+            "base",
+            "base.en",
+            "base-q5_1",
+            "base.en-q5_1",
+            "base-q8_0",
+            "small",
+            "small.en",
+            "small.en-tdrz",
+            "small-q5_1",
+            "small.en-q5_1",
+            "small-q8_0",
+            "medium",
+            "medium.en",
+            "medium-q5_0",
+            "medium.en-q5_0",
+            "medium-q8_0",
+            "large-v1",
+            "large-v2",
+            "large-v2-q5_0",
+            "large-v2-q8_0",
+            "large-v3",
+            "large-v3-q5_0",
+            "large-v3-turbo",
+            "large-v3-turbo-q5_0",
+            "large-v3-turbo-q8_0",
+        ],
+        case_sensitive=False,
+    ),
+    default="large-v3-q5_0",
     help="Whisper model",
 )
 @click.option(
@@ -46,12 +80,18 @@ logger = logging.getLogger(__name__)
     help="Output JSON file (default: input_01_transcript.json)",
 )
 @click.option(
+    "--limit",
+    type=float,
+    default=None,
+    help="Limit audio processing to X minutes (for testing)",
+)
+@click.option(
     "--verbose",
     "-v",
     is_flag=True,
     help="Verbose mode",
 )
-def transcribe(input: Path, model: str, lang: str, output: Path, verbose: bool) -> None:
+def transcribe(input: Path, model: str, lang: str, output: Path, limit: float, verbose: bool) -> None:
     """Transcribes audio using whisper.cpp."""
     setup_logging(verbose=verbose)
 
@@ -61,19 +101,31 @@ def transcribe(input: Path, model: str, lang: str, output: Path, verbose: bool) 
 
     # Convert audio
     wav_path = input.with_suffix(".wav")
-    convert_to_wav_16k(input, wav_path)
+    convert_to_wav_16k(input, wav_path, limit_minutes=limit)
     conversion_time = time.time() - start_time
     log_timing("Audio conversion", conversion_time)
 
+    # Determine outputs
+    if output is None:
+        metalscribe_output = input.parent / f"{input.stem}_01_transcript.json"
+        # Use input stem for raw whisper outputs
+        whisper_base = input.parent / input.stem
+    else:
+        metalscribe_output = output
+        # Derive whisper base from output
+        whisper_base = output.parent / output.stem
+    
+    # Check for collision on JSON
+    if metalscribe_output == whisper_base.with_suffix(".json"):
+        whisper_base = output.parent / f"{output.stem}_raw"
+
     # Transcribe
     transcribe_start = time.time()
-    segments = run_transcription(wav_path, model_name=model, language=lang)
+    segments = run_transcription(
+        wav_path, model_name=model, language=lang, output_base=whisper_base, verbose=verbose
+    )
     transcribe_time = time.time() - transcribe_start
     log_timing("Transcription", transcribe_time)
-
-    # Export JSON
-    if output is None:
-        output = input.parent / f"{input.stem}_01_transcript.json"
 
     # Convert to MergedSegment (no speaker)
     merged_segments = [
@@ -86,9 +138,10 @@ def transcribe(input: Path, model: str, lang: str, output: Path, verbose: bool) 
         for seg in segments
     ]
 
-    export_json(merged_segments, output)
+    export_json(merged_segments, metalscribe_output)
 
     total_time = time.time() - start_time
     log_timing("Total", total_time)
 
-    console.print(f"[green]✓ Transcription complete: {output}[/green]")
+    console.print(f"[green]✓ Transcription complete: {metalscribe_output}[/green]")
+    console.print(f"[blue]  Raw Whisper outputs saved to: {whisper_base}.*[/blue]")

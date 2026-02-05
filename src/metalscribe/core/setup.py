@@ -7,6 +7,7 @@ from pathlib import Path
 
 from metalscribe.config import (
     WHISPER_MODELS,
+    VAD_MODELS,
     get_brew_prefix,
     get_cache_dir,
     get_pyannote_venv_path,
@@ -42,9 +43,16 @@ def setup_whisper() -> None:
     whisper_dir = cache_dir / "whisper.cpp"
 
     if not whisper_dir.exists():
-        logger.info("Cloning whisper.cpp repository...")
+        logger.info("Cloning whisper.cpp repository (v1.8.3)...")
         run_command(
-            ["git", "clone", "https://github.com/ggerganov/whisper.cpp.git", str(whisper_dir)],
+            [
+                "git",
+                "clone",
+                "--branch",
+                "v1.8.3",
+                "https://github.com/ggerganov/whisper.cpp.git",
+                str(whisper_dir),
+            ],
             cwd=cache_dir,
         )
 
@@ -104,6 +112,37 @@ def download_whisper_model(model_name: str) -> Path:
     print()  # New line after progress
 
     logger.info(f"Model downloaded: {model_path}")
+    return model_path
+
+
+def download_vad_model(model_name: str = "silero-v6.2.0") -> Path:
+    """Downloads VAD model from HuggingFace."""
+    if model_name not in VAD_MODELS:
+        raise ValueError(f"Invalid VAD model: {model_name}")
+
+    model_info = VAD_MODELS[model_name]
+    cache_dir = get_cache_dir()
+    models_dir = cache_dir / "models"
+    models_dir.mkdir(parents=True, exist_ok=True)
+
+    model_path = models_dir / model_info["filename"]
+
+    if model_path.exists():
+        logger.info(f"VAD Model {model_name} already exists at {model_path}")
+        return model_path
+
+    logger.info(f"Downloading VAD model {model_name}...")
+    url = model_info["url"]
+
+    def show_progress(block_num: int, block_size: int, total_size: int) -> None:
+        downloaded = block_num * block_size
+        percent = min(100, (downloaded * 100) // total_size) if total_size > 0 else 0
+        print(f"\rProgress: {percent}%", end="", flush=True)
+
+    urllib.request.urlretrieve(url, model_path, show_progress)
+    print()  # New line after progress
+
+    logger.info(f"VAD Model downloaded: {model_path}")
     return model_path
 
 

@@ -19,6 +19,7 @@ def run_command(
     env: Optional[dict] = None,
     capture_output: bool = True,
     check: bool = True,
+    stream_output: bool = False,
 ) -> subprocess.CompletedProcess:
     """
     Runs a command with timeout and logging.
@@ -28,8 +29,9 @@ def run_command(
         timeout: Timeout in seconds
         cwd: Working directory
         env: Additional environment variables
-        capture_output: If True, captures stdout and stderr
+        capture_output: If True, captures stdout and stderr (ignored if stream_output=True)
         check: If True, raises exception on error
+        stream_output: If True, streams stdout/stderr to console in real-time
 
     Returns:
         CompletedProcess with command result
@@ -45,18 +47,71 @@ def run_command(
         full_env = {**os.environ, **env}
 
     try:
-        result = subprocess.run(
-            cmd,
-            timeout=timeout,
-            cwd=str(cwd) if cwd else None,
-            env=full_env,
-            capture_output=capture_output,
-            text=True,
-            check=check,
-        )
-        if result.stdout:
-            logger.debug(f"stdout: {result.stdout[:500]}")
-        return result
+        if stream_output:
+            # Stream output in real-time
+            process = subprocess.Popen(
+                cmd,
+                cwd=str(cwd) if cwd else None,
+                env=full_env,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                bufsize=1,
+                universal_newlines=True,
+            )
+            
+            stdout_lines = []
+            stderr_lines = []
+            
+            # Helper to read stream
+            import threading
+            
+            def read_stream(stream, lines, echo_stream):
+                for line in stream:
+                    lines.append(line)
+                    echo_stream.write(line)
+                    echo_stream.flush()
+            
+            # Start threads to read stdout and stderr
+            t_out = threading.Thread(target=read_stream, args=(process.stdout, stdout_lines, sys.stdout))
+            t_err = threading.Thread(target=read_stream, args=(process.stderr, stderr_lines, sys.stderr))
+            
+            t_out.start()
+            t_err.start()
+            
+            try:
+                process.wait(timeout=timeout)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                t_out.join()
+                t_err.join()
+                raise subprocess.TimeoutExpired(cmd, timeout)
+            
+            t_out.join()
+            t_err.join()
+            
+            stdout = "".join(stdout_lines)
+            stderr = "".join(stderr_lines)
+            
+            return_code = process.returncode
+            if check and return_code != 0:
+                raise subprocess.CalledProcessError(return_code, cmd, output=stdout, stderr=stderr)
+                
+            return subprocess.CompletedProcess(cmd, return_code, stdout, stderr)
+
+        else:
+            result = subprocess.run(
+                cmd,
+                timeout=timeout,
+                cwd=str(cwd) if cwd else None,
+                env=full_env,
+                capture_output=capture_output,
+                text=True,
+                check=check,
+            )
+            if result.stdout:
+                logger.debug(f"stdout: {result.stdout[:500]}")
+            return result
     except subprocess.TimeoutExpired:
         logger.error(f"Command exceeded {timeout}s timeout: {' '.join(cmd)}")
         raise

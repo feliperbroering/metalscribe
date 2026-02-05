@@ -22,13 +22,14 @@ SUPPORTED_FORMATS = {
 }
 
 
-def convert_to_wav_16k(input_path: Path, output_path: Path) -> None:
+def convert_to_wav_16k(input_path: Path, output_path: Path, limit_minutes: float | None = None) -> None:
     """
     Converts audio to WAV 16kHz mono using ffmpeg.
 
     Args:
         input_path: Input file path
         output_path: Output WAV file path
+        limit_minutes: Optional limit in minutes to process
 
     Raises:
         SystemExit: If conversion fails
@@ -44,19 +45,27 @@ def convert_to_wav_16k(input_path: Path, output_path: Path) -> None:
     logger.info(f"Converting {input_path} to WAV 16kHz mono...")
 
     # ffmpeg -i input -ar 16000 -ac 1 output.wav
-    run_command(
-        [
-            "ffmpeg",
-            "-i",
-            str(input_path),
-            "-ar",
-            "16000",  # Sample rate 16kHz
-            "-ac",
-            "1",  # Mono
-            "-y",  # Overwrite if exists
-            str(output_path),
-        ]
-    )
+    cmd = [
+        "ffmpeg",
+        "-i",
+        str(input_path),
+        "-ar",
+        "16000",  # Sample rate 16kHz
+        "-ac",
+        "1",  # Mono
+    ]
+
+    if limit_minutes:
+        limit_seconds = int(limit_minutes * 60)
+        logger.info(f"Limiting audio to {limit_minutes} minutes ({limit_seconds} seconds)")
+        cmd.extend(["-t", str(limit_seconds)])
+
+    cmd.extend([
+        "-y",  # Overwrite if exists
+        str(output_path),
+    ])
+
+    run_command(cmd)
 
     if not output_path.exists():
         logger.error(f"Failed to convert audio: {output_path}")

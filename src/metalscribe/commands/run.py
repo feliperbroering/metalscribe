@@ -35,8 +35,42 @@ logger = logging.getLogger(__name__)
 @click.option(
     "--model",
     "-m",
-    type=click.Choice(["tiny", "base", "small", "medium", "large-v3"], case_sensitive=False),
-    default="large-v3",
+    type=click.Choice(
+        [
+            "tiny",
+            "tiny.en",
+            "tiny-q5_1",
+            "tiny.en-q5_1",
+            "tiny-q8_0",
+            "base",
+            "base.en",
+            "base-q5_1",
+            "base.en-q5_1",
+            "base-q8_0",
+            "small",
+            "small.en",
+            "small.en-tdrz",
+            "small-q5_1",
+            "small.en-q5_1",
+            "small-q8_0",
+            "medium",
+            "medium.en",
+            "medium-q5_0",
+            "medium.en-q5_0",
+            "medium-q8_0",
+            "large-v1",
+            "large-v2",
+            "large-v2-q5_0",
+            "large-v2-q8_0",
+            "large-v3",
+            "large-v3-q5_0",
+            "large-v3-turbo",
+            "large-v3-turbo-q5_0",
+            "large-v3-turbo-q8_0",
+        ],
+        case_sensitive=False,
+    ),
+    default="large-v3-q5_0",
     help="Whisper model",
 )
 @click.option(
@@ -61,12 +95,18 @@ logger = logging.getLogger(__name__)
     help="Output files prefix (default: based on input)",
 )
 @click.option(
+    "--limit",
+    type=float,
+    default=None,
+    help="Limit audio processing to X minutes (for testing)",
+)
+@click.option(
     "--verbose",
     "-v",
     is_flag=True,
     help="Verbose mode",
 )
-def run(input: Path, model: str, lang: str, speakers: int, output: Path, verbose: bool) -> None:
+def run(input: Path, model: str, lang: str, speakers: int, output: Path, limit: float, verbose: bool) -> None:
     """Full pipeline: transcription + diarization + merge + export."""
     setup_logging(verbose=verbose)
 
@@ -82,13 +122,19 @@ def run(input: Path, model: str, lang: str, speakers: int, output: Path, verbose
         output = Path(output)
 
     # Get audio duration to calculate RTF
-    audio_duration = get_audio_duration(input)
+    # Note: If limited, we should use the limit as duration for RTF calc if it's smaller than actual duration
+    actual_duration = get_audio_duration(input)
+    audio_duration = actual_duration
+    if limit:
+        limit_seconds = limit * 60
+        if limit_seconds < actual_duration:
+            audio_duration = limit_seconds
 
     # Step 1: Audio conversion
     console.print("[cyan]Step 1: Converting audio...[/cyan]")
     wav_path = Path(tempfile.mktemp(suffix=".wav"))
     convert_start = time.time()
-    convert_to_wav_16k(input, wav_path)
+    convert_to_wav_16k(input, wav_path, limit_minutes=limit)
     convert_time = time.time() - convert_start
     convert_rtf = convert_time / audio_duration if audio_duration > 0 else None
     log_timing("Conversion", convert_time, rtf=convert_rtf)
@@ -97,8 +143,13 @@ def run(input: Path, model: str, lang: str, speakers: int, output: Path, verbose
     console.print("[cyan]Step 2: Transcribing...[/cyan]")
     transcript_json = Path(tempfile.mktemp(suffix=".json"))
     transcribe_start = time.time()
+    transcript_base = transcript_json.parent / transcript_json.stem
     transcript_segments = run_transcription(
-        wav_path, model_name=model, language=lang, output_json=transcript_json
+        wav_path,
+        model_name=model,
+        language=lang,
+        output_base=transcript_base,
+        verbose=verbose,
     )
     transcribe_time = time.time() - transcribe_start
     transcribe_rtf = transcribe_time / audio_duration if audio_duration > 0 else None

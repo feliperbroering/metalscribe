@@ -38,12 +38,18 @@ logger = logging.getLogger(__name__)
     help="Output JSON file (default: input_02_diarize.json)",
 )
 @click.option(
+    "--limit",
+    type=float,
+    default=None,
+    help="Limit audio processing to X minutes (for testing)",
+)
+@click.option(
     "--verbose",
     "-v",
     is_flag=True,
     help="Verbose mode",
 )
-def diarize(input: Path, speakers: int, output: Path, verbose: bool) -> None:
+def diarize(input: Path, speakers: int, output: Path, limit: float, verbose: bool) -> None:
     """Identifies speakers using pyannote.audio."""
     setup_logging(verbose=verbose)
 
@@ -53,7 +59,7 @@ def diarize(input: Path, speakers: int, output: Path, verbose: bool) -> None:
 
     # Convert audio
     wav_path = input.with_suffix(".wav")
-    convert_to_wav_16k(input, wav_path)
+    convert_to_wav_16k(input, wav_path, limit_minutes=limit)
     conversion_time = time.time() - start_time
     log_timing("Audio conversion", conversion_time)
 

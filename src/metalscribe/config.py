@@ -48,21 +48,129 @@ WHISPER_MODELS = {
         "filename": "ggml-tiny.bin",
         "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin",
     },
+    "tiny.en": {
+        "filename": "ggml-tiny.en.bin",
+        "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.en.bin",
+    },
+    "tiny-q5_1": {
+        "filename": "ggml-tiny-q5_1.bin",
+        "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny-q5_1.bin",
+    },
+    "tiny.en-q5_1": {
+        "filename": "ggml-tiny.en-q5_1.bin",
+        "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.en-q5_1.bin",
+    },
+    "tiny-q8_0": {
+        "filename": "ggml-tiny-q8_0.bin",
+        "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny-q8_0.bin",
+    },
     "base": {
         "filename": "ggml-base.bin",
         "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin",
+    },
+    "base.en": {
+        "filename": "ggml-base.en.bin",
+        "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en.bin",
+    },
+    "base-q5_1": {
+        "filename": "ggml-base-q5_1.bin",
+        "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base-q5_1.bin",
+    },
+    "base.en-q5_1": {
+        "filename": "ggml-base.en-q5_1.bin",
+        "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.en-q5_1.bin",
+    },
+    "base-q8_0": {
+        "filename": "ggml-base-q8_0.bin",
+        "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base-q8_0.bin",
     },
     "small": {
         "filename": "ggml-small.bin",
         "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin",
     },
+    "small.en": {
+        "filename": "ggml-small.en.bin",
+        "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.en.bin",
+    },
+    "small.en-tdrz": {
+        "filename": "ggml-small.en-tdrz.bin",
+        "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.en-tdrz.bin",
+    },
+    "small-q5_1": {
+        "filename": "ggml-small-q5_1.bin",
+        "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small-q5_1.bin",
+    },
+    "small.en-q5_1": {
+        "filename": "ggml-small.en-q5_1.bin",
+        "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.en-q5_1.bin",
+    },
+    "small-q8_0": {
+        "filename": "ggml-small-q8_0.bin",
+        "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small-q8_0.bin",
+    },
     "medium": {
         "filename": "ggml-medium.bin",
         "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium.bin",
     },
+    "medium.en": {
+        "filename": "ggml-medium.en.bin",
+        "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium.en.bin",
+    },
+    "medium-q5_0": {
+        "filename": "ggml-medium-q5_0.bin",
+        "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium-q5_0.bin",
+    },
+    "medium.en-q5_0": {
+        "filename": "ggml-medium.en-q5_0.bin",
+        "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium.en-q5_0.bin",
+    },
+    "medium-q8_0": {
+        "filename": "ggml-medium-q8_0.bin",
+        "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium-q8_0.bin",
+    },
+    "large-v1": {
+        "filename": "ggml-large-v1.bin",
+        "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v1.bin",
+    },
+    "large-v2": {
+        "filename": "ggml-large-v2.bin",
+        "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v2.bin",
+    },
+    "large-v2-q5_0": {
+        "filename": "ggml-large-v2-q5_0.bin",
+        "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v2-q5_0.bin",
+    },
+    "large-v2-q8_0": {
+        "filename": "ggml-large-v2-q8_0.bin",
+        "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v2-q8_0.bin",
+    },
     "large-v3": {
         "filename": "ggml-large-v3.bin",
         "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3.bin",
+    },
+    "large-v3-q5_0": {
+        "filename": "ggml-large-v3-q5_0.bin",
+        "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-q5_0.bin",
+    },
+    "large-v3-turbo": {
+        "filename": "ggml-large-v3-turbo.bin",
+        "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin",
+    },
+    "large-v3-turbo-q5_0": {
+        "filename": "ggml-large-v3-turbo-q5_0.bin",
+        "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q5_0.bin",
+    },
+    "large-v3-turbo-q8_0": {
+        "filename": "ggml-large-v3-turbo-q8_0.bin",
+        "url": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q8_0.bin",
+    },
+}
+
+# Available VAD models
+VAD_MODELS = {
+    "silero-v6.2.0": {
+        "filename": "ggml-silero-v6.2.0.bin",
+        "url": "https://huggingface.co/ggml-org/whisper-vad/resolve/main/ggml-silero-v6.2.0.bin",
     },
 }
 
