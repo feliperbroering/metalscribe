@@ -90,21 +90,25 @@ def run_transcription(
         "-f",
         str(audio_path),
         "-oj",  # Output JSON
-        "-osrt",  # Output SRT
+        #"-osrt",  # Output SRT
         "-otxt",  # Output TXT
-        "-ovtt",  # Output VTT
-        "-olrc",  # Output LRC
-        "-ocsv",  # Output CSV
+        #"-ovtt",  # Output VTT
+        #"-olrc",  # Output LRC
+        #"-ocsv",  # Output CSV
         "-of",  # Output file path (without extension)
         output_base_str,
         "--vad",  # Enable VAD
         "-vm",  # VAD model
         str(vad_model_path),
+        "--entropy-thold", "2.8",  # Increased from default 2.4 to prevent repetition loops (hallucinations)
+        "--no-fallback",  # Disable temperature fallback to prevent hallucinations on silence/noise
     ]
 
     if language:
         cmd.extend(["-l", language])
-
+    else:
+        cmd.extend(["-l", "auto"])  # Auto-detect language if not specified (default is 'en')
+ 
     if verbose:
         cmd.append("--print-colors")
 
