@@ -25,8 +25,14 @@ logger = logging.getLogger(__name__)
     "--input",
     "-i",
     type=click.Path(exists=True, path_type=Path),
-    required=True,
+    required=False,
     help="Markdown transcription file to refine",
+)
+@click.option(
+    "--import-transcript",
+    type=click.Path(exists=True, path_type=Path),
+    default=None,
+    help="Import external transcript JSON instead of MD file",
 )
 @click.option(
     "--output",
@@ -49,7 +55,8 @@ logger = logging.getLogger(__name__)
     help="Verbose mode",
 )
 def refine(
-    input: Path,
+    input: Path | None,
+    import_transcript: Path | None,
     output: Path,
     model: str,
     verbose: bool,
@@ -64,16 +71,63 @@ def refine(
     prompt_language metadata (set during transcription with --lang).
     Falls back to pt-BR if not specified.
 
+    You can either:
+    - Provide --input (markdown file) to refine existing markdown
+    - Provide --import-transcript (JSON) to convert and refine external transcript
+
     \b
     Examples:
         metalscribe refine -i transcription.md
         metalscribe refine -i transcription.md -o refined.md
+        metalscribe refine --import-transcript transcript.json -o refined.md
     """
     setup_logging(verbose=verbose)
 
+    import tempfile
     import time
 
     start_time = time.time()
+
+    # Validate input options
+    if not input and not import_transcript:
+        console.print("[red]Error: Must provide either --input or --import-transcript[/red]")
+        raise click.Abort()
+
+    if input and import_transcript:
+        console.print(
+            "[red]Error: Cannot use both --input and --import-transcript simultaneously[/red]"
+        )
+        raise click.Abort()
+
+    # Handle import transcript mode
+    if import_transcript:
+        from metalscribe.adapters import import_transcript as import_transcript_func
+        from metalscribe.config import DEFAULT_PROMPT_LANGUAGE, get_prompt_language
+        from metalscribe.exporters.markdown_exporter import export_markdown
+
+        console.print(f"[cyan]Importing transcript from: {import_transcript}[/cyan]")
+
+        try:
+            # Import segments
+            merged = import_transcript_func(import_transcript)
+
+            # Create temporary markdown file
+            temp_md = Path(tempfile.mktemp(suffix=".md"))
+            prompt_language = DEFAULT_PROMPT_LANGUAGE
+            metadata = {
+                "source": "imported",
+                "import_file": str(import_transcript),
+                "prompt_language": prompt_language,
+            }
+            export_markdown(merged, temp_md, title=import_transcript.stem, metadata=metadata)
+
+            # Use temp markdown as input
+            input = temp_md
+            console.print(f"[dim]Converted to temporary markdown: {temp_md}[/dim]")
+
+        except ValueError as e:
+            console.print(f"[red]Error importing transcript: {e}[/red]")
+            raise click.Abort()
 
     # Determine output file
     if output is None:

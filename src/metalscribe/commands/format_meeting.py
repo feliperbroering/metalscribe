@@ -33,8 +33,14 @@ logger = logging.getLogger(__name__)
     "--input",
     "-i",
     type=click.Path(exists=True, path_type=Path),
-    required=True,
+    required=False,
     help="Input markdown transcription file",
+)
+@click.option(
+    "--import-transcript",
+    type=click.Path(exists=True, path_type=Path),
+    default=None,
+    help="Import external transcript JSON instead of MD file",
 )
 @click.option(
     "--output",
@@ -42,6 +48,13 @@ logger = logging.getLogger(__name__)
     type=click.Path(path_type=Path),
     default=None,
     help="Output formatted markdown file (default: input_05_formatted-meeting.md)",
+)
+@click.option(
+    "--context",
+    "-c",
+    type=click.Path(exists=True, path_type=Path),
+    default=None,
+    help="Domain context file for improved quality",
 )
 @click.option(
     "--model",
@@ -63,8 +76,10 @@ logger = logging.getLogger(__name__)
     help="Verbose mode",
 )
 def format_meeting(
-    input: Path,
+    input: Path | None,
+    import_transcript: Path | None,
     output: Path,
+    context: Path | None,
     model: str,
     yes: bool,
     verbose: bool,
@@ -78,6 +93,10 @@ def format_meeting(
     The prompt language is automatically detected from the file's
     prompt_language metadata (set during transcription with --lang).
     Falls back to pt-BR if not specified.
+
+    You can either:
+    - Provide --input (markdown file) to format existing markdown
+    - Provide --import-transcript (JSON) to convert and format external transcript
 
     The generated document includes:
 
@@ -97,12 +116,60 @@ def format_meeting(
         metalscribe format-meeting -i meeting.md
         metalscribe format-meeting -i meeting.md -o formatted.md
         metalscribe format-meeting -i meeting.md --yes
+        metalscribe format-meeting --import-transcript transcript.json -c context.md --yes
     """
     setup_logging(verbose=verbose)
 
+    import tempfile
     import time
 
     start_time = time.time()
+
+    # Validate input options
+    if not input and not import_transcript:
+        console.print("[red]Error: Must provide either --input or --import-transcript[/red]")
+        raise click.Abort()
+
+    if input and import_transcript:
+        console.print(
+            "[red]Error: Cannot use both --input and --import-transcript simultaneously[/red]"
+        )
+        raise click.Abort()
+
+    # Load domain context if provided
+    domain_context = ""
+    if context:
+        domain_context = context.read_text(encoding="utf-8")
+        console.print(f"[cyan]Using context file: {context} ({len(domain_context)} chars)[/cyan]")
+
+    # Handle import transcript mode
+    if import_transcript:
+        from metalscribe.adapters import import_transcript as import_transcript_func
+        from metalscribe.exporters.markdown_exporter import export_markdown
+
+        console.print(f"[cyan]Importing transcript from: {import_transcript}[/cyan]")
+
+        try:
+            # Import segments
+            merged = import_transcript_func(import_transcript)
+
+            # Create temporary markdown file
+            temp_md = Path(tempfile.mktemp(suffix=".md"))
+            prompt_language = DEFAULT_PROMPT_LANGUAGE
+            metadata = {
+                "source": "imported",
+                "import_file": str(import_transcript),
+                "prompt_language": prompt_language,
+            }
+            export_markdown(merged, temp_md, title=import_transcript.stem, metadata=metadata)
+
+            # Use temp markdown as input
+            input = temp_md
+            console.print(f"[dim]Converted to temporary markdown: {temp_md}[/dim]")
+
+        except ValueError as e:
+            console.print(f"[red]Error importing transcript: {e}[/red]")
+            raise click.Abort()
 
     # Determine output file
     if output is None:
@@ -158,7 +225,7 @@ def format_meeting(
             raise click.Abort()
 
         # Load prompt for estimation
-        prompt = load_format_meeting_prompt(language)
+        prompt = load_format_meeting_prompt(language, domain_context=domain_context)
 
         # Estimate tokens
         estimates = estimate_tokens(body, prompt)
@@ -198,6 +265,7 @@ def format_meeting(
             output_path=output,
             model=model,
             language=language,
+            domain_context=domain_context,
         )
 
         elapsed = time.time() - start_time

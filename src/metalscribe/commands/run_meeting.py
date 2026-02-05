@@ -47,8 +47,14 @@ logger = logging.getLogger(__name__)
     "--input",
     "-i",
     type=click.Path(exists=True, path_type=Path),
-    required=True,
+    required=False,
     help="Input audio file",
+)
+@click.option(
+    "--import-transcript",
+    type=click.Path(exists=True, path_type=Path),
+    default=None,
+    help="Import external transcript JSON (skips audio/transcription/diarization)",
 )
 @click.option(
     "--model",
@@ -144,7 +150,8 @@ logger = logging.getLogger(__name__)
     help="Verbose mode",
 )
 def run_meeting(
-    input: Path,
+    input: Path | None,
+    import_transcript: Path | None,
     model: str,
     lang: str,
     speakers: int,
@@ -160,12 +167,27 @@ def run_meeting(
 
     This command runs the full pipeline including LLM-based refinement and meeting formatting.
     Requires Claude Code authentication (run: claude auth login).
+
+    You can either:
+    - Provide --input (audio file) to run full transcription pipeline
+    - Provide --import-transcript (JSON) to skip transcription and start from existing transcript
     """
     setup_logging(verbose=verbose)
 
     import time
 
     start_time = time.time()
+
+    # Validate input options
+    if not input and not import_transcript:
+        console.print("[red]Error: Must provide either --input or --import-transcript[/red]")
+        raise click.Abort()
+
+    if input and import_transcript:
+        console.print(
+            "[red]Error: Cannot use both --input and --import-transcript simultaneously[/red]"
+        )
+        raise click.Abort()
 
     domain_context = ""
     if context:
@@ -190,103 +212,154 @@ def run_meeting(
     # Determine output prefix
     if output is None:
         # Use input stem as base for output files
-        output = input.parent / input.stem
+        if import_transcript:
+            output = import_transcript.parent / import_transcript.stem
+        else:
+            output = input.parent / input.stem
     else:
         output = Path(output)
 
-    # Get audio duration to calculate RTF
-    # Note: If limited, we should use the limit as duration for RTF calc if it's smaller than actual duration
-    actual_duration = get_audio_duration(input)
-    audio_duration = actual_duration
-    if limit:
-        limit_seconds = limit * 60
-        if limit_seconds < actual_duration:
-            audio_duration = limit_seconds
+    # Branch: Import transcript or run full pipeline
+    if import_transcript:
+        # Import mode: skip Steps 1-4
+        console.print(f"[cyan]Importing transcript from: {import_transcript}[/cyan]")
+        from metalscribe.adapters import import_transcript as import_transcript_func
 
-    # Step 1: Audio conversion
-    console.print("[cyan]Step 1: Converting audio...[/cyan]")
-    wav_path = Path(tempfile.mktemp(suffix=".wav"))
-    convert_start = time.time()
-    convert_to_wav_16k(input, wav_path, limit_minutes=limit)
-    convert_time = time.time() - convert_start
-    convert_rtf = convert_time / audio_duration if audio_duration > 0 else None
-    log_timing("Conversion", convert_time, rtf=convert_rtf)
+        try:
+            import_start = time.time()
+            merged = import_transcript_func(import_transcript)
+            import_time = time.time() - import_start
+            log_timing("Import", import_time)
+        except ValueError as e:
+            console.print(f"[red]Error importing transcript: {e}[/red]")
+            raise click.Abort()
 
-    # Step 2: Transcription
-    console.print("[cyan]Step 2: Transcribing...[/cyan]")
-    transcript_json = Path(tempfile.mktemp(suffix=".json"))
-    transcript_base = transcript_json.parent / transcript_json.stem
-    transcribe_start = time.time()
-    transcript_segments = run_transcription(
-        wav_path,
-        model_name=model,
-        language=lang,
-        output_base=transcript_base,
-        verbose=verbose,
-    )
-    transcribe_time = time.time() - transcribe_start
-    transcribe_rtf = transcribe_time / audio_duration if audio_duration > 0 else None
-    log_timing("Transcription", transcribe_time, rtf=transcribe_rtf)
+        # Export merged markdown
+        console.print("[cyan]Exporting imported transcript...[/cyan]")
+        export_start = time.time()
+        merged_md_path = output.parent / f"{output.stem}_03_merged.md"
 
-    # Step 3: Diarization
-    console.print("[cyan]Step 3: Diarizing...[/cyan]")
-    diarize_json = Path(tempfile.mktemp(suffix=".json"))
-    diarize_start = time.time()
-    diarize_segments = run_diarization(wav_path, num_speakers=speakers, output_json=diarize_json)
-    diarize_time = time.time() - diarize_start
-    diarize_rtf = diarize_time / audio_duration if audio_duration > 0 else None
-    log_timing("Diarization", diarize_time, rtf=diarize_rtf)
+        # Resolve prompt language (use CLI arg or default)
+        prompt_language = get_prompt_language(lang) if lang else DEFAULT_PROMPT_LANGUAGE
 
-    # Step 4: Merge
-    console.print("[cyan]Step 4: Combining...[/cyan]")
-    merge_start = time.time()
-    merged = merge_segments(transcript_segments, diarize_segments)
-    merge_time = time.time() - merge_start
-    log_timing("Merge", merge_time)
+        metadata = {
+            "source": "imported",
+            "import_file": str(import_transcript),
+            "prompt_language": prompt_language,
+        }
+        if lang:
+            metadata["language"] = lang
 
-    # Step 5: Export
-    console.print("[cyan]Step 5: Exporting...[/cyan]")
-    export_start = time.time()
+        export_markdown(merged, merged_md_path, title=output.stem, metadata=metadata)
+        export_time = time.time() - export_start
+        log_timing("Export", export_time)
 
-    # New naming convention:
-    # 1. audio_01_transcript.json
-    # 2. audio_02_diarize.json
-    # 3. audio_03_merged.md
-    transcript_json_path = output.parent / f"{output.stem}_01_transcript.json"
-    diarize_json_path = output.parent / f"{output.stem}_02_diarize.json"
-    merged_md_path = output.parent / f"{output.stem}_03_merged.md"
+        # Set timing variables for later use (not applicable in import mode)
+        convert_time = None
+        transcribe_time = None
+        diarize_time = None
+        merge_time = None
+        audio_duration = None
 
-    # Resolve prompt language from Whisper language code
-    prompt_language = get_prompt_language(lang)
+    else:
+        # Normal mode: run full pipeline
+        # Get audio duration to calculate RTF
+        # Note: If limited, we should use the limit as duration for RTF calc if it's smaller than actual duration
+        actual_duration = get_audio_duration(input)
+        audio_duration = actual_duration
+        if limit:
+            limit_seconds = limit * 60
+            if limit_seconds < actual_duration:
+                audio_duration = limit_seconds
 
-    metadata = {
-        "model": model,
-        "language": lang,
-        "prompt_language": prompt_language,
-        "num_speakers": speakers or "auto",
-        "input_file": str(input),
-    }
+        # Step 1: Audio conversion
+        console.print("[cyan]Step 1: Converting audio...[/cyan]")
+        wav_path = Path(tempfile.mktemp(suffix=".wav"))
+        convert_start = time.time()
+        convert_to_wav_16k(input, wav_path, limit_minutes=limit)
+        convert_time = time.time() - convert_start
+        convert_rtf = convert_time / audio_duration if audio_duration > 0 else None
+        log_timing("Conversion", convert_time, rtf=convert_rtf)
 
-    # Export transcription only (without speaker info)
-    transcript_metadata = {
-        "model": model,
-        "language": lang,
-        "input_file": str(input),
-    }
-    export_transcript_json(transcript_segments, transcript_json_path, metadata=transcript_metadata)
+        # Step 2: Transcription
+        console.print("[cyan]Step 2: Transcribing...[/cyan]")
+        transcript_json = Path(tempfile.mktemp(suffix=".json"))
+        transcript_base = transcript_json.parent / transcript_json.stem
+        transcribe_start = time.time()
+        transcript_segments = run_transcription(
+            wav_path,
+            model_name=model,
+            language=lang,
+            output_base=transcript_base,
+            verbose=verbose,
+        )
+        transcribe_time = time.time() - transcribe_start
+        transcribe_rtf = transcribe_time / audio_duration if audio_duration > 0 else None
+        log_timing("Transcription", transcribe_time, rtf=transcribe_rtf)
 
-    # Export diarization only (speaker info only)
-    diarize_metadata = {
-        "num_speakers": speakers or "auto",
-        "input_file": str(input),
-    }
-    export_diarize_json(diarize_segments, diarize_json_path, metadata=diarize_metadata)
+        # Step 3: Diarization
+        console.print("[cyan]Step 3: Diarizing...[/cyan]")
+        diarize_json = Path(tempfile.mktemp(suffix=".json"))
+        diarize_start = time.time()
+        diarize_segments = run_diarization(
+            wav_path, num_speakers=speakers, output_json=diarize_json
+        )
+        diarize_time = time.time() - diarize_start
+        diarize_rtf = diarize_time / audio_duration if audio_duration > 0 else None
+        log_timing("Diarization", diarize_time, rtf=diarize_rtf)
 
-    # Export merged markdown only (no .json or .srt)
-    export_markdown(merged, merged_md_path, title=input.stem, metadata=metadata)
+        # Step 4: Merge
+        console.print("[cyan]Step 4: Combining...[/cyan]")
+        merge_start = time.time()
+        merged = merge_segments(transcript_segments, diarize_segments)
+        merge_time = time.time() - merge_start
+        log_timing("Merge", merge_time)
 
-    export_time = time.time() - export_start
-    log_timing("Export", export_time)
+        # Step 5: Export
+        console.print("[cyan]Step 5: Exporting...[/cyan]")
+        export_start = time.time()
+
+        # New naming convention:
+        # 1. audio_01_transcript.json
+        # 2. audio_02_diarize.json
+        # 3. audio_03_merged.md
+        transcript_json_path = output.parent / f"{output.stem}_01_transcript.json"
+        diarize_json_path = output.parent / f"{output.stem}_02_diarize.json"
+        merged_md_path = output.parent / f"{output.stem}_03_merged.md"
+
+        # Resolve prompt language from Whisper language code
+        prompt_language = get_prompt_language(lang)
+
+        metadata = {
+            "model": model,
+            "language": lang,
+            "prompt_language": prompt_language,
+            "num_speakers": speakers or "auto",
+            "input_file": str(input),
+        }
+
+        # Export transcription only (without speaker info)
+        transcript_metadata = {
+            "model": model,
+            "language": lang,
+            "input_file": str(input),
+        }
+        export_transcript_json(
+            transcript_segments, transcript_json_path, metadata=transcript_metadata
+        )
+
+        # Export diarization only (speaker info only)
+        diarize_metadata = {
+            "num_speakers": speakers or "auto",
+            "input_file": str(input),
+        }
+        export_diarize_json(diarize_segments, diarize_json_path, metadata=diarize_metadata)
+
+        # Export merged markdown only (no .json or .srt)
+        export_markdown(merged, merged_md_path, title=input.stem, metadata=metadata)
+
+        export_time = time.time() - export_start
+        log_timing("Export", export_time)
 
     # Step 6: Refine
     console.print("\n[cyan]Step 6: Refining transcription...[/cyan]")
@@ -427,19 +500,27 @@ def run_meeting(
     # Timings log (06_timings.log)
     timings_log = output.parent / f"{output.stem}_06_timings.log"
     total_time = time.time() - start_time
-    total_rtf = total_time / audio_duration if audio_duration > 0 else None
+    total_rtf = total_time / audio_duration if audio_duration and audio_duration > 0 else None
     with open(timings_log, "w") as f:
-        f.write(f"Audio duration: {format_duration(audio_duration)} ({audio_duration:.2f}s)\n")
-        f.write(f"\nConversion: {format_duration(convert_time)} ({convert_time:.2f}s)")
-        if convert_rtf:
-            f.write(f" (RTF: {convert_rtf:.3f})")
-        f.write(f"\nTranscription: {format_duration(transcribe_time)} ({transcribe_time:.2f}s)")
-        if transcribe_rtf:
-            f.write(f" (RTF: {transcribe_rtf:.3f})")
-        f.write(f"\nDiarization: {format_duration(diarize_time)} ({diarize_time:.2f}s)")
-        if diarize_rtf:
-            f.write(f" (RTF: {diarize_rtf:.3f})")
-        f.write(f"\nMerge: {format_duration(merge_time)} ({merge_time:.2f}s)\n")
+        if import_transcript:
+            # Import mode timings
+            f.write("Mode: Import transcript\n")
+            f.write(f"Import file: {import_transcript}\n\n")
+            f.write(f"Import: {format_duration(import_time)} ({import_time:.2f}s)\n")
+        else:
+            # Normal mode timings
+            f.write(f"Audio duration: {format_duration(audio_duration)} ({audio_duration:.2f}s)\n")
+            f.write(f"\nConversion: {format_duration(convert_time)} ({convert_time:.2f}s)")
+            if convert_rtf:
+                f.write(f" (RTF: {convert_rtf:.3f})")
+            f.write(f"\nTranscription: {format_duration(transcribe_time)} ({transcribe_time:.2f}s)")
+            if transcribe_rtf:
+                f.write(f" (RTF: {transcribe_rtf:.3f})")
+            f.write(f"\nDiarization: {format_duration(diarize_time)} ({diarize_time:.2f}s)")
+            if diarize_rtf:
+                f.write(f" (RTF: {diarize_rtf:.3f})")
+            f.write(f"\nMerge: {format_duration(merge_time)} ({merge_time:.2f}s)\n")
+
         f.write(f"Export: {format_duration(export_time)} ({export_time:.2f}s)\n")
         f.write(f"Refine: {format_duration(refine_time)} ({refine_time:.2f}s)\n")
         f.write(f"Format Meeting: {format_duration(format_time)} ({format_time:.2f}s)\n")
@@ -452,8 +533,9 @@ def run_meeting(
 
     console.print("\n[green]✓ Pipeline complete![/green]")
     console.print("[green]Generated files:[/green]")
-    console.print(f"  - {transcript_json_path}")
-    console.print(f"  - {diarize_json_path}")
+    if not import_transcript:
+        console.print(f"  - {transcript_json_path}")
+        console.print(f"  - {diarize_json_path}")
     console.print(f"  - {merged_md_path}")
     console.print(f"  - {refined_md_path}")
     console.print(f"  - {formatted_md_path}")

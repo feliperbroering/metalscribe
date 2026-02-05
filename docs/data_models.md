@@ -50,6 +50,43 @@ The merge process (`src/metalscribe/core/merge.py`) combines transcription and d
     *   `overlap_ratio = overlap_duration / transcript_duration`
 6.  If no overlap is found, assign `UNKNOWN`.
 
+## Transcript Import System
+
+The adapter system (`src/metalscribe/adapters/`) enables importing transcriptions from external services, bypassing the transcription and diarization steps.
+
+### Architecture
+
+```
+adapters/
+├── importer.py       # Entry point: import_transcript()
+├── registry.py       # TranscriptFormat enum + adapter registry
+├── base.py           # TranscriptAdapter base class
+├── detector.py       # Automatic format detection
+└── formats/
+    └── voxtral.py    # Voxtral format adapter
+```
+
+### How It Works
+
+1. **Detection**: `detect_format()` iterates through registered adapters and calls their `detect()` method
+2. **Parsing**: The appropriate adapter's `parse()` method converts the external format to `List[MergedSegment]`
+3. **Output**: Returns standardized `MergedSegment` objects ready for export
+
+### Supported Formats
+
+**Voxtral** (`TranscriptFormat.VOXTRAL`):
+- Detected by: `model` field containing "voxtral" or segments with `speaker_id`
+- Converts: seconds to milliseconds, `speaker_1` to `SPEAKER_01`
+
+### Adding New Formats
+
+1. Add to `TranscriptFormat` enum
+2. Create adapter class with `@register_adapter(TranscriptFormat.YOUR_FORMAT)`
+3. Implement `detect()` and `parse()` methods
+4. Import in `adapters/__init__.py`
+
+The system automatically registers and uses the new adapter.
+
 ## Output Formats
 
 ### JSON

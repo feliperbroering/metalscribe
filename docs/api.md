@@ -86,18 +86,84 @@ Complete pipeline with LLM refinement and meeting formatting: transcription + di
 **Prerequisite:** Authenticate with `claude auth login`.
 
 **Options**:
-- `--input, -i`: Audio file (required)
+- `--input, -i`: Audio file (mutually exclusive with `--import-transcript`)
+- `--import-transcript`: External transcript JSON (skips transcription/diarization steps)
 - `--model, -m`: Whisper model [default: large-v3]
 - `--lang, -l`: Language code
 - `--speakers, -s`: Number of speakers
 - `--output, -o`: Output file prefix
+- `--context, -c`: Domain context file for improved transcription quality
 - `--llm-model`: LLM model for refine and format-meeting (uses Claude Code default if not specified)
 - `--yes, -y`: Skip token confirmation prompt for format-meeting
+- `--limit`: Limit audio processing to X minutes (for testing)
 - `--verbose, -v`: Verbose mode
 
-**Example**:
+**Examples**:
 ```bash
+# From audio file (full pipeline)
 metalscribe run-meeting --input audio.m4a --model large-v3 --speakers 2
+
+# From external transcript JSON
+metalscribe run-meeting --import-transcript transcript.json --context domain.md --yes
+
+# With all options
+metalscribe run-meeting --input audio.m4a --context domain.md --llm-model claude-3-5-sonnet-20241022 --yes
+```
+
+**Supported Import Formats**:
+- **Voxtral**: Automatically detected from JSON structure
+- Additional formats can be added via the adapter system (see `src/metalscribe/adapters/`)
+
+### `metalscribe refine`
+
+Refines markdown transcription using LLM to correct ASR errors, improve punctuation, and preserve natural speech style.
+
+**Prerequisite:** Authenticate with `claude auth login`.
+
+**Options**:
+- `--input, -i`: Markdown transcription file (mutually exclusive with `--import-transcript`)
+- `--import-transcript`: External transcript JSON (converts to markdown automatically)
+- `--output, -o`: Output refined markdown file [default: input_04_refined.md]
+- `--model, -m`: Specific model (uses Claude Code default if not specified)
+- `--verbose, -v`: Verbose mode
+
+**Examples**:
+```bash
+# Refine markdown file
+metalscribe refine --input transcript.md
+
+# Refine from external transcript JSON
+metalscribe refine --import-transcript transcript.json --output refined.md
+
+# With specific model
+metalscribe refine --input transcript.md --model claude-3-5-sonnet-20241022
+```
+
+### `metalscribe format-meeting`
+
+Transforms meeting transcriptions into professional structured documents.
+
+**Prerequisite:** Authenticate with `claude auth login`.
+
+**Options**:
+- `--input, -i`: Markdown transcription file (mutually exclusive with `--import-transcript`)
+- `--import-transcript`: External transcript JSON (converts to markdown automatically)
+- `--output, -o`: Output formatted markdown file [default: input_05_formatted-meeting.md]
+- `--context, -c`: Domain context file for improved quality
+- `--model, -m`: Specific model (uses Claude Code default if not specified)
+- `--yes, -y`: Skip token confirmation prompt
+- `--verbose, -v`: Verbose mode
+
+**Examples**:
+```bash
+# Format markdown file
+metalscribe format-meeting --input meeting.md --yes
+
+# Format from external transcript JSON with context
+metalscribe format-meeting --import-transcript transcript.json --context domain.md --yes
+
+# With specific model
+metalscribe format-meeting --input meeting.md --model claude-3-5-sonnet-20241022 --yes
 ```
 
 ## Python Modules
@@ -154,6 +220,48 @@ from metalscribe.exporters import export_json, export_srt, export_markdown
 export_json(segments: List[MergedSegment], output_path: Path, metadata: Optional[dict] = None)
 export_srt(segments: List[MergedSegment], output_path: Path)
 export_markdown(segments: List[MergedSegment], output_path: Path, title: Optional[str] = None, metadata: Optional[dict] = None)
+```
+
+### `metalscribe.adapters`
+
+```python
+from metalscribe.adapters import import_transcript, detect_format, TranscriptFormat
+
+# Import external transcript (auto-detects format)
+segments = import_transcript(json_path: Path) -> List[MergedSegment]
+
+# Detect format manually
+format = detect_format(data: dict) -> TranscriptFormat | None
+
+# Available formats
+TranscriptFormat.VOXTRAL  # Voxtral transcription services
+```
+
+**Adding New Formats:**
+
+```python
+from metalscribe.adapters import TranscriptAdapter, register_adapter, TranscriptFormat
+from metalscribe.core.models import MergedSegment
+
+@register_adapter(TranscriptFormat.YOUR_FORMAT)
+class YourFormatAdapter(TranscriptAdapter):
+    @classmethod
+    def detect(cls, data: dict) -> bool:
+        # Return True if data matches your format
+        return "your_identifier" in data
+    
+    @classmethod
+    def parse(cls, data: dict) -> List[MergedSegment]:
+        # Convert your format to MergedSegment list
+        segments = []
+        for item in data["items"]:
+            segments.append(MergedSegment(
+                start_ms=item["start"] * 1000,
+                end_ms=item["end"] * 1000,
+                text=item["text"],
+                speaker=item["speaker"],
+            ))
+        return segments
 ```
 
 ## Data Models

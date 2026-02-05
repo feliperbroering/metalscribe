@@ -16,17 +16,26 @@ metalscribe is a Python CLI for audio transcription and diarization on macOS, le
 6.  **Refine (LLM)**: Corrects ASR errors and improves punctuation using Claude (via `claude-agent-sdk`).
 7.  **Format (LLM)**: Structures the transcription into a meeting document (summary, action items, etc.).
 
+**Alternative Entry Point:**
+- **Import Transcript**: External transcripts (e.g., Voxtral) can be imported via `--import-transcript`, skipping steps 1-4 and starting directly at Export (step 5).
+
 ### Code Structure
 
 -   `src/metalscribe/`
     -   `cli.py`: Main entry point using `click`.
     -   `config.py`: Configuration, constants, and path management.
-    -   `commands/`: Implementation of CLI commands (`run`, `transcribe`, `diarize`, `refine`, etc.).
+    -   `commands/`: Implementation of CLI commands (`run`, `run_meeting`, `transcribe`, `diarize`, `refine`, etc.).
     -   `core/`: Core business logic.
         -   `whisper.py`: Wrapper for `whisper.cpp` CLI.
         -   `pyannote.py`: Wrapper for `pyannote.audio` (runs in isolated venv).
         -   `merge.py`: Merge algorithm implementation.
         -   `setup.py`: Dependency installation and setup logic.
+    -   `adapters/`: External transcript importers (extensible via adapter pattern).
+        -   `importer.py`: Entry point for importing external transcripts.
+        -   `registry.py`: Format registry and enum.
+        -   `base.py`: Base adapter class.
+        -   `detector.py`: Automatic format detection.
+        -   `formats/`: Individual format adapters (Voxtral, etc.).
     -   `llm/`: LLM integration using `claude-agent-sdk`.
     -   `parsers/`: Parsers for tool outputs (Whisper JSON, Pyannote JSON).
     -   `exporters/`: Output formatters (SRT, Markdown, JSON).

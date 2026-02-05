@@ -109,10 +109,14 @@ Complete pipeline with LLM refinement and meeting formatting: transcription + di
 **Prerequisite:** Authenticate with `claude auth login`.
 
 ```bash
+# From audio file (full pipeline)
 metalscribe run-meeting --input audio.m4a --model large-v3 --speakers 2
 
 # With domain context for better quality
 metalscribe run-meeting --input audio.m4a --context my-context.md
+
+# From external transcript (skip transcription/diarization)
+metalscribe run-meeting --import-transcript transcript.json --context my-context.md --yes
 ```
 
 Automatically generates all files from `run` plus:
@@ -120,9 +124,15 @@ Automatically generates all files from `run` plus:
 - `*_05_formatted-meeting.md`: Professional meeting document (summary, action items, etc.)
 
 **Options:**
+- `--input, -i`: Audio file (mutually exclusive with `--import-transcript`)
+- `--import-transcript`: External transcript JSON (skips transcription/diarization steps)
 - `--context, -c`: Domain context file for improved transcription quality (see `metalscribe context`)
 - `--llm-model`: Specify LLM model (uses Claude Code default if not specified)
 - `--yes, -y`: Skip token confirmation prompt for format-meeting
+
+**Supported Import Formats:**
+- **Voxtral**: JSON format from Voxtral transcription services (automatically detected)
+- More formats can be added via the adapter system
 
 ### `metalscribe context`
 
@@ -155,11 +165,14 @@ Refines markdown transcription using LLM to correct ASR errors, improve punctuat
 **Prerequisite:** Authenticate with `claude auth login`.
 
 ```bash
-# Refine using default model
+# Refine markdown file using default model
 metalscribe refine --input transcript.md
 
 # Specify model and output file
 metalscribe refine --input transcript.md --output refined.md --model claude-3-5-sonnet-20241022
+
+# Refine from external transcript JSON
+metalscribe refine --import-transcript transcript.json --output refined.md
 ```
 
 **Features:**
@@ -169,6 +182,10 @@ metalscribe refine --input transcript.md --output refined.md --model claude-3-5-
 - Removes hallucinations and robotic repetitions
 - Maintains speaker structure and timestamps
 
+**Input Options:**
+- `--input`: Markdown file (default workflow)
+- `--import-transcript`: External transcript JSON (converts to markdown automatically)
+
 ### `metalscribe format-meeting`
 
 Transforms meeting transcriptions into professional structured documents.
@@ -176,11 +193,14 @@ Transforms meeting transcriptions into professional structured documents.
 **Prerequisite:** Authenticate with `claude auth login`.
 
 ```bash
-# Format meeting transcription
+# Format meeting from markdown file
 metalscribe format-meeting --input meeting.md
 
 # Skip confirmation prompt
 metalscribe format-meeting --input meeting.md --yes
+
+# Format from external transcript JSON with context
+metalscribe format-meeting --import-transcript transcript.json --context domain.md --yes
 ```
 
 **Output includes:**
@@ -189,6 +209,11 @@ metalscribe format-meeting --input meeting.md --yes
 - Topics discussed with timestamps
 - Action items table
 - Full structured transcription
+
+**Input Options:**
+- `--input`: Markdown file (default workflow)
+- `--import-transcript`: External transcript JSON (converts to markdown automatically)
+- `--context, -c`: Domain context file for improved quality
 
 ## LLM Configuration
 
@@ -207,9 +232,11 @@ When you run `metalscribe run --lang pt`, the system:
 
 ## Documentation
 
-- [Technical Specification](docs/TECHSPEC.md)
+- [API Reference](docs/api.md)
+- [Data Models](docs/data_models.md)
 - [Troubleshooting](docs/troubleshooting.md)
 - [Prompt Engineering](docs/prompts/README.md)
+- [Import Transcript Implementation](IMPORT_TRANSCRIPT_IMPLEMENTATION.md)
 
 ## Development
 
