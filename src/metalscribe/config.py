@@ -176,9 +176,10 @@ VAD_MODELS = {
 
 # Default LLM models for refine and format-meeting commands
 # These are the model identifiers accepted by claude-agent-sdk
-# Can use aliases ("sonnet", "opus") or full names ("claude-sonnet-4-5", "claude-opus-4-5")
-DEFAULT_REFINE_MODEL = "claude-sonnet-4-5"  # Sonnet 4.5 for refine command
-DEFAULT_FORMAT_MEETING_MODEL = "claude-opus-4-5"  # Opus 4.5 with thinking for format-meeting
+# Can use aliases ("sonnet", "opus") or full names ("claude-sonnet-4-5", "claude-opus-4-6")
+# Thinking mode is automatically enabled for Opus 4.5/4.6 via max_thinking_tokens in provider.py
+DEFAULT_REFINE_MODEL = "claude-opus-4-6"  # Opus 4.6 with thinking for refine command
+DEFAULT_FORMAT_MEETING_MODEL = "claude-opus-4-6"  # Opus 4.6 with thinking for format-meeting
 
 # Legacy: Default LLM model (deprecated, use command-specific defaults above)
 # None means use Claude Code SDK default model

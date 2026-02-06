@@ -82,9 +82,9 @@ class LLMProvider:
         else:
             effective_model = self.model  # May be None, which is OK
 
-        # Enable thinking mode for Opus 4.5 (supports extended thinking)
+        # Enable thinking mode for Opus 4.5 and 4.6 (supports extended thinking)
         # Default thinking budget: 10000 tokens for deep reasoning
-        max_thinking_tokens = 10000 if (effective_model and "opus-4-5" in effective_model.lower()) else None
+        max_thinking_tokens = 10000 if (effective_model and ("opus-4-5" in effective_model.lower() or "opus-4-6" in effective_model.lower())) else None
 
         options = ClaudeAgentOptions(
             system_prompt=effective_system,
@@ -180,9 +180,9 @@ class LLMProvider:
         else:
             effective_model = self.model  # May be None, which is OK
 
-        # Enable thinking mode for Opus 4.5 (supports extended thinking)
+        # Enable thinking mode for Opus 4.5 and 4.6 (supports extended thinking)
         # Default thinking budget: 10000 tokens for deep reasoning
-        max_thinking_tokens = 10000 if (effective_model and "opus-4-5" in effective_model.lower()) else None
+        max_thinking_tokens = 10000 if (effective_model and ("opus-4-5" in effective_model.lower() or "opus-4-6" in effective_model.lower())) else None
 
         options = ClaudeAgentOptions(
             system_prompt=effective_system,

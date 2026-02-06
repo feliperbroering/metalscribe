@@ -232,11 +232,12 @@ When you run `metalscribe run --lang pt`, the system:
 
 ## Documentation
 
-- [API Reference](docs/api.md)
-- [Data Models](docs/data_models.md)
-- [Troubleshooting](docs/troubleshooting.md)
-- [Prompt Engineering](docs/prompts/README.md)
-- [Import Transcript Implementation](IMPORT_TRANSCRIPT_IMPLEMENTATION.md)
+- [Architecture](docs/architecture.md) — Pipeline, code structure, file naming
+- [Development Guide](docs/development.md) — Conventions, dependencies, testing
+- [API Reference](docs/api.md) — CLI commands and Python API
+- [Data Models](docs/data_models.md) — Data structures, merge algorithm, adapter system
+- [Troubleshooting](docs/troubleshooting.md) — Common issues and debugging
+- [Prompt Engineering](docs/prompts/README.md) — Language system and prompt design
 
 ## Development
 

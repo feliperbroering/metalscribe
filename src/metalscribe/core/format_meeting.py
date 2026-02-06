@@ -115,7 +115,7 @@ def format_meeting_text(
     # Build full message with prompt and text
     full_text = f"{prompt}\n\n---\n\nTRANSCRIPTION TO FORMAT:\n\n{text}"
 
-    # Use Opus 4.5 with thinking as default if no model specified
+    # Use Opus 4.6 thinking as default if no model specified
     effective_model = model if model is not None else DEFAULT_FORMAT_MEETING_MODEL
     provider = LLMProvider(model=effective_model)
     response = provider.query(text=full_text)

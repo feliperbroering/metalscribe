@@ -81,7 +81,7 @@ def refine_text(
     else:
         prompt = load_refine_prompt(language, domain_context=domain_context)
 
-    # Use Sonnet 4.5 as default if no model specified
+    # Use Opus 4.6 thinking as default if no model specified
     effective_model = model if model is not None else DEFAULT_REFINE_MODEL
     provider = LLMProvider(model=effective_model, system_prompt=prompt)
     response = provider.query(text=text)

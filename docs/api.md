@@ -62,6 +62,27 @@ Combines transcription and diarization results.
 metalscribe combine --transcript transcript.json --diarize diarize.json
 ```
 
+### `metalscribe context`
+
+Manage domain context files for improved transcription quality. Context files provide terminology, proper nouns, and domain knowledge to the LLM refinement stage.
+
+**Subcommands**:
+- `show`: Display the context template
+- `copy <path>`: Copy template to a file for editing
+- `validate <path>`: Validate a context file
+
+**Examples**:
+```bash
+# Show the context template
+metalscribe context show
+
+# Copy template to a file
+metalscribe context copy my-context.md
+
+# Validate a context file
+metalscribe context validate my-context.md
+```
+
 ### `metalscribe run`
 
 Complete pipeline: transcription + diarization + merge + export.

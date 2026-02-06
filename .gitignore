@@ -57,6 +57,7 @@ htmlcov/
 *.md
 !README.md
 !CLAUDE.md
+!AGENTS.md
 !RELEASES.md
 !docs/**/*.md
 !scripts/**/*.md
